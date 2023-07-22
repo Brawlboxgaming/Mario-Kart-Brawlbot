@@ -61,7 +61,7 @@ namespace MKBB
 
             SlashCommands = Client.UseSlashCommands();
 #if DEBUG
-            SlashCommands.RegisterCommands<Testing>(180306609233330176);
+            SlashCommands.RegisterCommands<Testing>(1095401690120851558);
 #endif
             SlashCommands.RegisterCommands<Config>();
             SlashCommands.RegisterCommands<TimeTrialManagement>();
@@ -72,6 +72,11 @@ namespace MKBB
             SlashCommands.RegisterCommands<Council>(180306609233330176);
             SlashCommands.RegisterCommands<Misc>(180306609233330176);
             SlashCommands.RegisterCommands<Ghostbusters>(180306609233330176);
+
+            SlashCommands.RegisterCommands<Update>(1095401690120851558);
+            SlashCommands.RegisterCommands<Council>(1095401690120851558);
+            SlashCommands.RegisterCommands<Misc>(1095401690120851558);
+            SlashCommands.RegisterCommands<Ghostbusters>(1095401690120851558);
 
             await events.AssignAllEvents();
 
