@@ -808,7 +808,7 @@ namespace MKBB.Commands
                     if (lastChecked < today && today == int.Parse(response.Values[i][1].ToString()) + 1)
                     {
                         dueTracks.Add(response.Values[i][0].ToString());
-                        for (int j = 12; j < response.Values[0].Count; j++)
+                        for (int j = 13; j < response.Values[0].Count; j++)
                         {
                             int ix = councilJson.FindIndex(x => x.Name == response.Values[0][j].ToString());
                             bool isAuthor = councilJson[ix].Name.Contains(response.Values[i][2].ToString());
