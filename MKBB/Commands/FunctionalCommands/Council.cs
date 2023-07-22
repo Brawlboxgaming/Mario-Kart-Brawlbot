@@ -125,6 +125,7 @@ namespace MKBB.Commands
                                 slot,
                                 lapSpeed,
                                 notes,
+                                $"=(J{countResponse.Values.Count + 1}+K{countResponse.Values.Count + 1}+L{countResponse.Values.Count + 1}/{countResponse.Values.Count + 1})/(J{countResponse.Values.Count + 1}+K{countResponse.Values.Count + 1}+L{countResponse.Values.Count + 1}+M{countResponse.Values.Count + 1})",
                                 $"=COUNTIF($M{countResponse.Values.Count + 1}:{countResponse.Values.Count + 1}, \"yes*\")",
                                 $"=COUNTIF($M{countResponse.Values.Count + 1}:{countResponse.Values.Count + 1}, \"fixes*\")",
                                 $"=COUNTIF($M{countResponse.Values.Count + 1}:{countResponse.Values.Count + 1}, \"neutral*\")",
@@ -446,7 +447,7 @@ namespace MKBB.Commands
 
                     int sheetIx = -1;
 
-                    for (int i = 12; i < response.Values[0].Count; i++)
+                    for (int i = 13; i < response.Values[0].Count; i++)
                     {
                         if (Util.CompareStrings(councilJson[ix].Name, response.Values[0][i].ToString()))
                         {
