@@ -1,6 +1,5 @@
 ﻿using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
-using MKBB.Class;
 
 namespace MKBB.Data
 {

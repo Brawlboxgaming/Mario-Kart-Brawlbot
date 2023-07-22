@@ -1,23 +1,15 @@
 ﻿using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
-using DSharpPlus.SlashCommands.Attributes;
-using DSharpPlus.SlashCommands;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Services;
 using Google.Apis.Sheets.v4;
 using MKBB.Class;
 using MKBB.Data;
 using Newtonsoft.Json;
-using System.ComponentModel;
 using System.Net;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.RegularExpressions;
-using static IronPython.Modules._ast;
-using MKBB.Commands;
-using Google.Apis.Sheets.v4.Data;
-using System.Xml.Linq;
-using System.Security.Policy;
 
 namespace MKBB
 {
@@ -46,11 +38,11 @@ namespace MKBB
                 if (e.Id == "issuesEmbedding") await DisplayEmbeddedIssues(e);
 
                 if (e.Id == "bugSubmission") await BugModal(e);
-                if (e.Id.Contains("bugAcceptMaj")) await BugAdminModal(c, e, "Accept", 5, e.Id.Split('-')[1]);
-                if (e.Id.Contains("bugAcceptMin")) await BugAdminModal(c, e, "Accept", 6, e.Id.Split('-')[1]);
-                if (e.Id.Contains("bugModifyMaj")) await BugAdminModal(c, e, "Modify", 5, e.Id.Split('-')[1]);
-                if (e.Id.Contains("bugModifyMin")) await BugAdminModal(c, e, "Modify", 6, e.Id.Split('-')[1]);
-                if (e.Id.Contains("bugReject")) await BugAdminModal(c, e, "Reject", -1, e.Id.Split('-')[1]);
+                if (e.Id.Contains("bugAcceptMaj")) await BugAdminModal(c, e, "Accept", 5, e.Id.Split('-')[1], e.Id.Split('-')[2]);
+                if (e.Id.Contains("bugAcceptMin")) await BugAdminModal(c, e, "Accept", 6, e.Id.Split('-')[1], e.Id.Split('-')[2]);
+                if (e.Id.Contains("bugModifyMaj")) await BugAdminModal(c, e, "Modify", 5, e.Id.Split('-')[1], e.Id.Split('-')[2]);
+                if (e.Id.Contains("bugModifyMin")) await BugAdminModal(c, e, "Modify", 6, e.Id.Split('-')[1], e.Id.Split('-')[2]);
+                if (e.Id.Contains("bugReject")) await BugAdminModal(c, e, "Reject", -1, e.Id.Split('-')[1], e.Id.Split('-')[2]);
 
                 if (e.Id == "pinAccept") await HandlePendingPins(c, e, true);
                 if (e.Id == "pinReject") await HandlePendingPins(c, e, false);
@@ -61,8 +53,8 @@ namespace MKBB
                 if (e.Interaction.Data.CustomId == "gbSubmissionModal") await GBModalSubmit(e);
 
                 if (e.Interaction.Data.CustomId == "bugSubmissionModal") await BugModalSubmit(c, e);
-                if (e.Interaction.Data.CustomId.Contains("adminBugSubmissionModalMaj")) await BugAdminModalSubmit(c, e, 5, e.Interaction.Data.CustomId.Split('-')[1]);
-                if (e.Interaction.Data.CustomId.Contains("adminBugSubmissionModalMin")) await BugAdminModalSubmit(c, e, 6, e.Interaction.Data.CustomId.Split('-')[1]);
+                if (e.Interaction.Data.CustomId.Contains("adminBugSubmissionModalMaj")) await BugAdminModalSubmit(c, e, 5, e.Interaction.Data.CustomId.Split('-')[1], e.Interaction.Data.CustomId.Split('-')[2]);
+                if (e.Interaction.Data.CustomId.Contains("adminBugSubmissionModalMin")) await BugAdminModalSubmit(c, e, 6, e.Interaction.Data.CustomId.Split('-')[1], e.Interaction.Data.CustomId.Split('-')[2]);
             };
 
             await Task.CompletedTask;
@@ -109,7 +101,6 @@ namespace MKBB
                 await Util.ThrowInteractionlessError(ex);
             }
         }
-
         private async Task LogInteractions(DiscordClient c, InteractionCreateEventArgs e)
         {
             DiscordChannel channel = Bot.Client.GetGuildAsync(1095401690120851558).Result.GetChannel(1095402077338996846);
@@ -388,6 +379,22 @@ namespace MKBB
                                 Text = $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
                             }
                         }));
+
+                        DiscordChannel channel = e.Interaction.Guild.GetChannel(1128804056761118881);
+
+                        await channel.SendMessageAsync(new DiscordEmbedBuilder()
+                        {
+                            Color = new DiscordColor("#FF0000"),
+                            Title = $"__**New Time Submitted:**__",
+                            Description = $"**Track**: *{dbCtx.GBTracks.First(x=>x.SHA1s.Contains(ghostData.TrackID)).Name}*" +
+                            $"\n**Player**: *{user.Mention}*" +
+                            $"\n**URL**: *{ghostUrl}*" +
+                            $"{(comments != null && comments != "" ? $"\n**Comments**: *{comments}*" : null)}",
+                            Footer = new DiscordEmbedBuilder.EmbedFooter
+                            {
+                                Text = $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
+                            }
+                        });
                     }
                     else
                     {
@@ -481,23 +488,23 @@ namespace MKBB
 
                     DiscordButtonComponent acceptMajButton = new(
                         ButtonStyle.Success,
-                        $"bugAcceptMaj-{message.Id}",
+                        $"bugAcceptMaj-{message.Id}-{e.Interaction.User.Mention}",
                         "Accept (Major)");
                     DiscordButtonComponent acceptMinButton = new(
                         ButtonStyle.Success,
-                        $"bugAcceptMin-{message.Id}",
+                        $"bugAcceptMin-{message.Id}-{e.Interaction.User.Mention}",
                         "Accept (Minor)");
                     DiscordButtonComponent modifyMajButton = new(
                         ButtonStyle.Secondary,
-                        $"bugModifyMaj-{message.Id}",
+                        $"bugModifyMaj-{message.Id}-{e.Interaction.User.Mention}",
                         "Modify (Major)");
                     DiscordButtonComponent modifyMinButton = new(
                         ButtonStyle.Secondary,
-                        $"bugModifyMin-{message.Id}",
+                        $"bugModifyMin-{message.Id}-{e.Interaction.User.Mention}",
                         "Modify (Minor)");
                     DiscordButtonComponent rejectButton = new(
                         ButtonStyle.Danger,
-                        $"bugReject-{message.Id}",
+                        $"bugReject-{message.Id}-{e.Interaction.User.Mention}",
                         "Reject");
 
                     await message.ModifyAsync(new DiscordMessageBuilder().AddEmbed(new DiscordEmbedBuilder
@@ -523,7 +530,7 @@ namespace MKBB
                 await Util.ThrowInteractionlessError(ex);
             }
         }
-        private async Task BugAdminModal(DiscordClient c, ComponentInteractionCreateEventArgs e, string a, int s, string m)
+        private async Task BugAdminModal(DiscordClient c, ComponentInteractionCreateEventArgs e, string a, int s, string m, string u)
         {
             DiscordMessage message = e.Message;
             if (a == "Accept")
@@ -544,8 +551,6 @@ namespace MKBB
                 string evidence = match.Groups[1].Value;
                 match = Regex.Match(message.Embeds[0].Description, @"\*\*Description:\*\* \*(.*)\*");
                 string description = match.Groups[1].Value;
-                match = Regex.Match(message.Embeds[0].Description, @"\*\*Submitted by:\*\* (.*)");
-                string mention = match.Groups[1].Value;
 
                 string issue = $"- {description}: {evidence}";
 
@@ -556,7 +561,7 @@ namespace MKBB
                 {
                     Color = new DiscordColor("#FF0000"),
                     Title = $"__**Accepted Bug Report:**__",
-                    Description = $"**Submitted by:** {e.Interaction.User.Mention}\n" +
+                    Description = $"**Submitted by:** {u}\n" +
                         $"**Track:** *{track.Name}*\n" +
                         $"**Evidence:** *{evidence}*\n" +
                         $"**Description:** *{description}*",
@@ -572,7 +577,7 @@ namespace MKBB
                 {
                     Color = new DiscordColor("#FF0000"),
                     Title = $"__**Bug Report:**__",
-                    Description = $"**Submitted by:** {mention}\n" +
+                    Description = $"**Submitted by:** {u}\n" +
                         $"**Track:** *{track.Name}*\n" +
                         $"**Evidence:** *{evidence}*\n" +
                         $"**Description:** *{description}*",
@@ -625,7 +630,7 @@ namespace MKBB
                 {
                     Color = new DiscordColor("#FF0000"),
                     Title = $"__**Rejected Bug Report:**__",
-                    Description = $"**Submitted by:** {e.Interaction.User.Mention}\n" +
+                    Description = $"**Submitted by:** {u}\n" +
                         $"**Track:** *{track.Name}*\n" +
                         $"**Evidence:** *{evidence}*\n" +
                         $"**Description:** *{description}*",
@@ -650,13 +655,13 @@ namespace MKBB
             }
             await e.Interaction.CreateResponseAsync(InteractionResponseType.Modal, new DiscordInteractionResponseBuilder()
                 .WithTitle("Bug Report Modified Submission")
-                .WithCustomId(s == 5 ? $"adminBugSubmissionModalMaj-{message.Id}" : $"adminBugSubmissionModalMin-{message.Id}")
+                .WithCustomId(s == 5 ? $"adminBugSubmissionModalMaj-{message.Id}-{u}" : $"adminBugSubmissionModalMin-{message.Id}-{u}")
                 .AddComponents(new TextInputComponent(label: "Track", customId: "track", placeholder: "Melting Magma Melee"))
                 .AddComponents(new TextInputComponent(label: "Video or Image Link", customId: "link", placeholder: "https://gyazo.com/c8f785e6997bef0231723b582ea25f90"))
                 .AddComponents(new TextInputComponent(label: "Description of Bug", customId: "description", placeholder: "Bad out-of-bounds plane."))
                 );
         }
-        private async Task BugAdminModalSubmit(DiscordClient c, ModalSubmitEventArgs e, int s, string m)
+        private async Task BugAdminModalSubmit(DiscordClient c, ModalSubmitEventArgs e, int s, string m, string u)
         {
             try
             {
@@ -695,7 +700,7 @@ namespace MKBB
                     {
                         Color = new DiscordColor("#FF0000"),
                         Title = $"__**Accepted Bug Report:**__",
-                        Description = $"**Submitted by:** {e.Interaction.User.Mention}\n" +
+                        Description = $"**Submitted by:** {u}\n" +
                             $"**Track:** *{track.Name}*\n" +
                             $"**Evidence:** *{evidence}*\n" +
                             $"**Description:** *{description}*",
@@ -711,7 +716,7 @@ namespace MKBB
                     {
                         Color = new DiscordColor("#FF0000"),
                         Title = $"__**Bug Report:**__",
-                        Description = $"**Submitted by:** {e.Interaction.User.Mention}\n" +
+                        Description = $"**Submitted by:** {u}\n" +
                             $"**Track:** *{track.Name}*\n" +
                             $"**Evidence:** *{evidence}*\n" +
                             $"**Description:** *{description}*",

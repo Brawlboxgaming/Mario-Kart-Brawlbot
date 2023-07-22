@@ -4,7 +4,6 @@ using DSharpPlus.EventArgs;
 using DSharpPlus.SlashCommands;
 using DSharpPlus.SlashCommands.Attributes;
 using DSharpPlus.SlashCommands.EventArgs;
-using MKBB.Class;
 using MKBB.Data;
 
 namespace MKBB

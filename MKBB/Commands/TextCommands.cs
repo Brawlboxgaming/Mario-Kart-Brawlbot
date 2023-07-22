@@ -2,9 +2,6 @@
 using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
 using MKBB.Class;
-using System.Collections.Generic;
-using System.IO;
-using System.Threading.Tasks;
 
 namespace MKBB.Commands
 {

@@ -122,6 +122,9 @@ namespace MKBB.Commands
             string ctwwUrl2 = "https://wiimmfi.de/stats/track/mv/ctgp?m=json&p=std,c2,0,100";
             string ctwwUrl3 = "https://wiimmfi.de/stats/track/mv/ctgp?m=json&p=std,c2,0,200";
             string wwUrl = "https://wiimmfi.de/stats/track/mv/ww?m=json&p=std,c2,0";
+            string froomUrl1 = "https://wiimmfi.de/stats/track/mv/priv?m=json&p=std,c2,0";
+            string froomUrl2 = "https://wiimmfi.de/stats/track/mv/priv?m=json&p=std,c2,0,100";
+            string froomUrl3 = "https://wiimmfi.de/stats/track/mv/priv?m=json&p=std,c2,0,200";
 
             using MKBBContext dbCtx = new();
 
@@ -335,19 +338,17 @@ namespace MKBB.Commands
                 {
                     if (names[i].Split('(')[0].Replace("Wii", "").Trim(' ') == t.Name && !t.CustomTrack)
                     {
-                        t.M1 = int.Parse(m1s[i]);
-                        t.M2 = int.Parse(m2s[i]);
-                        t.M3 = int.Parse(m3s[i]);
-                        t.M6 = int.Parse(m6s[i]);
-                        t.M9 = int.Parse(m9s[i]);
-                        t.M12 = int.Parse(m12s[i]);
+                        t.WWM1 = int.Parse(m1s[i]);
+                        t.WWM2 = int.Parse(m2s[i]);
+                        t.WWM3 = int.Parse(m3s[i]);
+                        t.WWM6 = int.Parse(m6s[i]);
+                        t.WWM9 = int.Parse(m9s[i]);
+                        t.WWM12 = int.Parse(m12s[i]);
                         break;
                     }
                 }
                 dbCtx.SaveChanges();
             }
-
-            // // Custom Tracks
 
             HtmlDocument ctwwHtml1 = new();
             HtmlDocument ctwwHtml2 = new();
@@ -366,7 +367,7 @@ namespace MKBB.Commands
             {
                 if (i % 11 - 2 == 0)
                 {
-                    names.Add(innerText1[i].InnerHtml == "–" ? "0" : innerText1[i].InnerHtml);
+                    names.Add(innerText1[i].InnerText == "–" ? "0" : innerText1[i].InnerText);
                 }
                 if (i % 11 - 3 == 0)
                 {
@@ -479,12 +480,12 @@ namespace MKBB.Commands
                         if (bodyNodes[i].InnerText.Replace("SHA1: ", "").ToLowerInvariant() == track.SHA1.ToLowerInvariant() && track.CustomTrack)
                         {
                             Console.WriteLine($"Checking SHA1s for {track.Name} from {bodyNodes[i].InnerHtml}");
-                            track.M1 = int.Parse(m1s[i]);
-                            track.M2 = int.Parse(m2s[i]);
-                            track.M3 = int.Parse(m3s[i]);
-                            track.M6 = int.Parse(m6s[i]);
-                            track.M9 = int.Parse(m9s[i]);
-                            track.M12 = int.Parse(m12s[i]);
+                            track.WWM1 = int.Parse(m1s[i]);
+                            track.WWM2 = int.Parse(m2s[i]);
+                            track.WWM3 = int.Parse(m3s[i]);
+                            track.WWM6 = int.Parse(m6s[i]);
+                            track.WWM9 = int.Parse(m9s[i]);
+                            track.WWM12 = int.Parse(m12s[i]);
                         }
                     }
                     dbCtx.SaveChanges();
@@ -499,25 +500,196 @@ namespace MKBB.Commands
                     {
                         foreach (var track in dbCtx.Tracks)
                         {
-                            if (tt.InnerText.ToLowerInvariant() == track.SHA1.ToLowerInvariant() && track.CustomTrack)
+                            if (tt.InnerText.ToLowerInvariant().Contains(track.SHA1.ToLowerInvariant()) && track.CustomTrack)
                             {
                                 Console.WriteLine($"Checking SHA1s for {track.Name} from {bodyNodes[i].InnerHtml.Split('"')[1]}");
-                                track.M1 = int.Parse(m1s[i]);
-                                track.M2 = int.Parse(m2s[i]);
-                                track.M3 = int.Parse(m3s[i]);
-                                track.M6 = int.Parse(m6s[i]);
-                                track.M9 = int.Parse(m9s[i]);
-                                track.M12 = int.Parse(m12s[i]);
+                                track.WWM1 = int.Parse(m1s[i]);
+                                track.WWM2 = int.Parse(m2s[i]);
+                                track.WWM3 = int.Parse(m3s[i]);
+                                track.WWM6 = int.Parse(m6s[i]);
+                                track.WWM9 = int.Parse(m9s[i]);
+                                track.WWM12 = int.Parse(m12s[i]);
                             }
                         }
                         dbCtx.SaveChanges();
                     }
                 }
             }
+
+            // // Friend Rooms
+
+            HtmlDocument froomHtml1 = new();
+            HtmlDocument froomHtml2 = new();
+            HtmlDocument froomHtml3 = new();
+            froomHtml1.LoadHtml(await webClient.DownloadStringTaskAsync(froomUrl1));
+            bodyNodes = froomHtml1.DocumentNode.SelectNodes("//td[contains(@class, 'LL')]");
+            innerText1 = froomHtml1.DocumentNode.SelectNodes("//tr[contains(@id, 'p0-')]/td");
+            names = new List<string>();
+            m1s = new List<string>();
+            m2s = new List<string>();
+            m3s = new List<string>();
+            m6s = new List<string>();
+            m9s = new List<string>();
+            m12s = new List<string>();
+            for (int i = 0; i < innerText1.Count; i++)
+            {
+                if (i % 11 - 2 == 0)
+                {
+                    names.Add(innerText1[i].InnerText == "–" ? "0" : innerText1[i].InnerText);
+                }
+                if (i % 11 - 3 == 0)
+                {
+                    m1s.Add(innerText1[i].InnerHtml == "–" ? "0" : innerText1[i].InnerHtml);
+                }
+                if (i % 11 - 4 == 0)
+                {
+                    m2s.Add(innerText1[i].InnerHtml == "–" ? "0" : innerText1[i].InnerHtml);
+                }
+                if (i % 11 - 5 == 0)
+                {
+                    m3s.Add(innerText1[i].InnerHtml == "–" ? "0" : innerText1[i].InnerHtml);
+                }
+                if (i % 11 - 6 == 0)
+                {
+                    m6s.Add(innerText1[i].InnerHtml == "–" ? "0" : innerText1[i].InnerHtml);
+                }
+                if (i % 11 - 7 == 0)
+                {
+                    m9s.Add(innerText1[i].InnerHtml == "–" ? "0" : innerText1[i].InnerHtml);
+                }
+                if (i % 11 - 8 == 0)
+                {
+                    m12s.Add(innerText1[i].InnerHtml == "–" ? "0" : innerText1[i].InnerHtml);
+                }
+            }
+            Console.WriteLine("Downloaded 1st Froom Wiimmfi Page");
+            froomHtml2.LoadHtml(await webClient.DownloadStringTaskAsync(froomUrl2));
+            foreach (var n in froomHtml2.DocumentNode.SelectNodes("//td[contains(@class, 'LL')]"))
+            {
+                bodyNodes.Add(n);
+            }
+            innerText2 = froomHtml2.DocumentNode.SelectNodes("//tr[contains(@id, 'p0-1')]/td");
+            for (int i = 0; i < innerText2.Count; i++)
+            {
+                if (i % 11 - 2 == 0)
+                {
+                    names.Add(innerText2[i].InnerText == "–" ? "0" : innerText2[i].InnerText);
+                }
+                if (i % 11 - 3 == 0)
+                {
+                    m1s.Add(innerText2[i].InnerHtml == "–" ? "0" : innerText2[i].InnerHtml);
+                }
+                if (i % 11 - 4 == 0)
+                {
+                    m2s.Add(innerText2[i].InnerHtml == "–" ? "0" : innerText2[i].InnerHtml);
+                }
+                if (i % 11 - 5 == 0)
+                {
+                    m3s.Add(innerText2[i].InnerHtml == "–" ? "0" : innerText2[i].InnerHtml);
+                }
+                if (i % 11 - 6 == 0)
+                {
+                    m6s.Add(innerText2[i].InnerHtml == "–" ? "0" : innerText2[i].InnerHtml);
+                }
+                if (i % 11 - 7 == 0)
+                {
+                    m9s.Add(innerText2[i].InnerHtml == "–" ? "0" : innerText2[i].InnerHtml);
+                }
+                if (i % 11 - 8 == 0)
+                {
+                    m12s.Add(innerText2[i].InnerHtml == "–" ? "0" : innerText2[i].InnerHtml);
+                }
+            }
+            Console.WriteLine("Downloaded 2nd Froom Wiimmfi Page");
+            froomHtml3.LoadHtml(await webClient.DownloadStringTaskAsync(froomUrl3));
+            foreach (var n in froomHtml3.DocumentNode.SelectNodes("//td[contains(@class, 'LL')]"))
+            {
+                bodyNodes.Add(n);
+            }
+            innerText3 = froomHtml3.DocumentNode.SelectNodes("//tr[contains(@id, 'p0-2')]/td");
+            for (int i = 0; i < innerText3.Count; i++)
+            {
+                if (i % 11 - 2 == 0)
+                {
+                    names.Add(innerText3[i].InnerText == "–" ? "0" : innerText3[i].InnerText);
+                }
+                if (i % 11 - 3 == 0)
+                {
+                    m1s.Add(innerText3[i].InnerHtml == "–" ? "0" : innerText3[i].InnerHtml);
+                }
+                if (i % 11 - 4 == 0)
+                {
+                    m2s.Add(innerText3[i].InnerHtml == "–" ? "0" : innerText3[i].InnerHtml);
+                }
+                if (i % 11 - 5 == 0)
+                {
+                    m3s.Add(innerText3[i].InnerHtml == "–" ? "0" : innerText3[i].InnerHtml);
+                }
+                if (i % 11 - 6 == 0)
+                {
+                    m6s.Add(innerText3[i].InnerHtml == "–" ? "0" : innerText3[i].InnerHtml);
+                }
+                if (i % 11 - 7 == 0)
+                {
+                    m9s.Add(innerText3[i].InnerHtml == "–" ? "0" : innerText3[i].InnerHtml);
+                }
+                if (i % 11 - 8 == 0)
+                {
+                    m12s.Add(innerText3[i].InnerHtml == "–" ? "0" : innerText3[i].InnerHtml);
+                }
+            }
+            Console.WriteLine("Downloaded 3rd Froom Wiimmfi Page");
+            for (int i = 0; i < bodyNodes.Count; i++)
+            {
+                if (bodyNodes[i].InnerHtml.Contains("SHA1"))
+                {
+                    foreach (var track in dbCtx.Tracks)
+                    {
+                        if (bodyNodes[i].InnerText.Replace("SHA1: ", "").ToLowerInvariant() == track.SHA1.ToLowerInvariant())
+                        {
+                            Console.WriteLine($"Checking SHA1s for {track.Name} from {bodyNodes[i].InnerHtml}");
+                            track.FM1 = int.Parse(m1s[i]);
+                            track.FM2 = int.Parse(m2s[i]);
+                            track.FM3 = int.Parse(m3s[i]);
+                            track.FM6 = int.Parse(m6s[i]);
+                            track.FM9 = int.Parse(m9s[i]);
+                            track.FM12 = int.Parse(m12s[i]);
+                        }
+                    }
+                    dbCtx.SaveChanges();
+                }
+                else
+                {
+                    var dl = await webClient.DownloadStringTaskAsync($"{bodyNodes[i].InnerHtml.Split('"')[1]}?m=json");
+                    HtmlDocument trackHtml = new();
+                    trackHtml.LoadHtml(dl);
+                    var tts = trackHtml.DocumentNode.SelectNodes("//tr/td/tt");
+                    foreach (var tt in tts)
+                    {
+                        foreach (var track in dbCtx.Tracks)
+                        {
+                            if (tt.InnerText.ToLowerInvariant().Contains(track.SHA1.ToLowerInvariant()))
+                            {
+                                Console.WriteLine($"Checking SHA1s for {track.Name} from {bodyNodes[i].InnerHtml.Split('"')[1]}");
+                                track.FM1 = int.Parse(m1s[i]);
+                                track.FM2 = int.Parse(m2s[i]);
+                                track.FM3 = int.Parse(m3s[i]);
+                                track.FM6 = int.Parse(m6s[i]);
+                                track.FM9 = int.Parse(m9s[i]);
+                                track.FM12 = int.Parse(m12s[i]);
+                            }
+                        }
+                        dbCtx.SaveChanges();
+                    }
+                }
+            }
+
+#if DEBUG == false
             File.WriteAllText(@"C:\WebApps\MKBB\wwwroot\api\rts.json", JsonConvert.SerializeObject(dbCtx.Tracks.Where(x => !x.CustomTrack && !x.Is200cc).ToList()));
             File.WriteAllText(@"C:\WebApps\MKBB\wwwroot\api\rts200.json", JsonConvert.SerializeObject(dbCtx.Tracks.Where(x => !x.CustomTrack && x.Is200cc).ToList()));
             File.WriteAllText(@"C:\WebApps\MKBB\wwwroot\api\cts.json", JsonConvert.SerializeObject(dbCtx.Tracks.Where(x => x.CustomTrack && !x.Is200cc).ToList()));
             File.WriteAllText(@"C:\WebApps\MKBB\wwwroot\api\cts200.json", JsonConvert.SerializeObject(dbCtx.Tracks.Where(x => x.CustomTrack && x.Is200cc).ToList()));
+#endif
 
             var today = DateTime.Now;
             File.WriteAllText("lastUpdated.txt", today.ToString("dd/MM/yyyy HH:mm:ss"));

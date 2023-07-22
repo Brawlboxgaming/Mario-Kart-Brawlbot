@@ -7,7 +7,6 @@ using MKBB.Class;
 using MKBB.Data;
 using Newtonsoft.Json;
 using System.Net;
-using static Microsoft.Scripting.PerfTrack;
 
 namespace MKBB.Commands
 {
@@ -742,6 +741,7 @@ namespace MKBB.Commands
                             List<string> playerIds = new List<string>();
                             foreach (var player in players)
                             {
+
                                 playerIds.Add(player.PlayerID);
                             }
                             if (vehicleRestriction == "Kart")
@@ -769,8 +769,12 @@ namespace MKBB.Commands
                             {
                                 var ghostJson = await webClient.DownloadStringTaskAsync($"https://www.chadsoft.co.uk/time-trials{ghost.LinkContainer.Href.URL}");
                                 ghost.ExtraInfo = JsonConvert.DeserializeObject<ExtraInfo>(ghostJson);
-                                ulong playerId = players.Find(x => x.PlayerID == ghost.PlayerId).DiscordID;
-                                leaderboardDisplay += $"**{leaderboard.Ghosts.FindIndex(x => x.LinkContainer.Href.URL == ghost.LinkContainer.Href.URL) + 1})** <@{playerId}> - {ghost.FinishTimeSimple}\n";
+                                PlayerData player = players.Find(x => x.PlayerID.Contains(ghost.PlayerId));
+                                List<string> ids = player.PlayerID.Split(",,").ToList();
+                                List<string> links = player.PlayerLink.Split(",,").ToList();
+                                int ix = ids.FindIndex(x => x == ghost.PlayerId);
+                                Profile profile = JsonConvert.DeserializeObject<Profile>(await webClient.DownloadStringTaskAsync(links[ix]));
+                                leaderboardDisplay += $"**{leaderboard.Ghosts.FindIndex(x => x.LinkContainer.Href.URL == ghost.LinkContainer.Href.URL) + 1})** <@{player.DiscordID}> - {profile.MiiName} - {ghost.FinishTimeSimple}\n";
                             }
 
                             DiscordEmbedBuilder embed = new()

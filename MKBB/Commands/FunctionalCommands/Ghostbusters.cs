@@ -1,25 +1,10 @@
 ﻿using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
-using DSharpPlus.SlashCommands.Attributes;
-using Google.Apis.Auth.OAuth2;
-using Google.Apis.Services;
-using Google.Apis.Sheets.v4;
-using Google.Apis.Sheets.v4.Data;
-using HtmlAgilityPack;
 using MKBB.Class;
 using MKBB.Data;
 using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Net;
-using System.Runtime.InteropServices.JavaScript;
-using System.Security.Cryptography.X509Certificates;
-using System.Threading.Channels;
-using System.Threading.Tasks;
-using static Google.Apis.Sheets.v4.SpreadsheetsResource.ValuesResource;
-using static IronPython.Modules._ast;
 
 namespace MKBB.Commands
 {
@@ -293,7 +278,7 @@ namespace MKBB.Commands
 
                 using MKBBContext dbCtx = new();
 
-                List<GBTimeData> gbTimes = dbCtx.GBTimes.Where(x => x.Player == player.Id.ToString()).ToList();
+                List<GBTimeData> gbTimes = dbCtx.GBTimes.Where(x => x.Player == player.Id.ToString() && x.URL != null).ToList();
                 if (gbTimes.Count == 0)
                 {
                     await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(new DiscordEmbedBuilder

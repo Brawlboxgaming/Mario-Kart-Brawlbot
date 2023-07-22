@@ -2,22 +2,15 @@
 using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
 using Google.Apis.Auth.OAuth2;
-using Google.Apis.Http;
 using Google.Apis.Services;
 using Google.Apis.Sheets.v4;
 using Google.Apis.Sheets.v4.Data;
 using IronPython.Runtime.Operations;
+using Microsoft.Identity.Client;
 using MKBB.Class;
 using MKBB.Data;
-using Newtonsoft.Json;
 using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
-using System.Linq;
 using System.Security.Cryptography.X509Certificates;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MKBB.Commands
 {
@@ -405,46 +398,125 @@ namespace MKBB.Commands
                 await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource, new DiscordInteractionResponseBuilder() { IsEphemeral = Util.CheckEphemeral(ctx) });
                 arg = Util.Convert3DSTrackName(arg);
 
-                string description1 = string.Empty;
-                string description2 = string.Empty;
-                string description3 = string.Empty;
-                string description4 = string.Empty;
-                string description5 = string.Empty;
-                string description6 = string.Empty;
-                string description7 = string.Empty;
-                string description8 = string.Empty;
-                string description9 = string.Empty;
-                string description10 = string.Empty;
-                string description11 = string.Empty;
+                List<List<DiscordEmbed>> categories = new();
+                List<string> categoryNames = new List<string> { "All", "Worldwides", "Friend Rooms" };
 
-                using MKBBContext dbCtx = new();
-                List<TrackData> trackListCts = dbCtx.Tracks.AsEnumerable()
-                    .Where(x => (x.CategoryName == "Normal" || x.CategoryName == "No-shortcut") && x.CustomTrack && !x.Is200cc)
-                    .DistinctBy(x => x.Name)
-                    .OrderByDescending(x => metric == "online" ? x.ReturnOnlinePopularity(month) : x.TimeTrialPopularity)
-                    .ToList();
 
-                List<TrackData> trackListRts = dbCtx.Tracks.AsEnumerable()
-                    .Where(x => (x.CategoryName == "Normal" || x.CategoryName == "No-shortcut") && !x.CustomTrack && !x.Is200cc)
-                    .DistinctBy(x => x.Name)
-                    .OrderByDescending(x => metric == "online" ? x.ReturnOnlinePopularity(month) : x.TimeTrialPopularity)
-                    .ToList();
-
-                List<DiscordEmbed> embeds = new();
-
-                if (arg.ToLowerInvariant().Contains("rts"))
+                for (int c = 0; c < categoryNames.Count(); c++)
                 {
-                    for (int i = 0; i < 21; i++)
+                    List<DiscordEmbed> embeds = GeneratePopularityEmbeds(arg, month, metric, c < 2, c != 1);
+                    if (embeds[0].Description == "")
                     {
-                        description1 += $"**{i + 1})** {trackListRts[i].Name} *({(metric == "online" ? trackListRts[i].ReturnOnlinePopularity(month) : trackListRts[i].TimeTrialPopularity)})*\n";
-                    }
-                    for (int i = 21; i < 32; i++)
-                    {
-                        description2 += $"**{i + 1})** {trackListRts[i].Name} *({(metric == "online" ? trackListRts[i].ReturnOnlinePopularity(month) : trackListRts[i].TimeTrialPopularity)})*\n";
-                    }
-                    embeds = new(){
-                        new DiscordEmbedBuilder
+                        DiscordEmbedBuilder embed = new()
                         {
+                            Color = new DiscordColor("#FF0000"),
+                            Title = "__**Error:**__",
+                            Description = $"*{arg} could not be found.*",
+                            Url = metric == "online" ? "https://wiimmfi.de/stats/track/mv/ctgp?p=std,c2,0" : "https://chadsoft.co.uk/time-trials/",
+                            Footer = new DiscordEmbedBuilder.EmbedFooter
+                            {
+                                Text = $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
+                            }
+                        };
+                        await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(embed));
+                        return;
+                    }
+                    categories.Add(embeds);
+                }
+
+                if (arg.ToLowerInvariant().Contains("rts") || arg.ToLowerInvariant().Contains("cts"))
+                {
+                    var messageBuilder = new DiscordWebhookBuilder().AddEmbed(categories[0][0]);
+
+                    if (metric == "online") messageBuilder.AddComponents(Util.GenerateCategorySelectMenu(categoryNames, 0));
+
+                    messageBuilder.AddComponents(Util.GeneratePageArrows());
+
+                    var message = await ctx.EditResponseAsync(messageBuilder);
+
+                    PendingPagesInteraction pending = new();
+
+                    if (metric == "online")
+                    {
+                        pending = new() { CurrentPage = 0, MessageId = message.Id, Context = ctx, Pages = categories[0], Categories = categories, CategoryNames = categoryNames };
+                    }
+                    else
+                    {
+                        pending = new() { CurrentPage = 0, MessageId = message.Id, Context = ctx, Pages = categories[0] };
+                    }
+
+                    Util.PendingPageInteractions.Add(pending);
+                }
+                else
+                {
+                    var messageBuilder = new DiscordWebhookBuilder().AddEmbed(categories[0][0]);
+
+                    if (metric == "online") messageBuilder.AddComponents(Util.GenerateCategorySelectMenu(categoryNames, 0));
+
+                    var message = await ctx.EditResponseAsync(messageBuilder);
+
+                    PendingPagesInteraction pending = new();
+
+                    if (metric == "online")
+                    {
+                        pending = new() { CurrentPage = 0, MessageId = message.Id, Context = ctx, Pages = categories[0], Categories = categories, CategoryNames = categoryNames };
+                    }
+                    else
+                    {
+                        pending = new() { CurrentPage = 0, MessageId = message.Id, Context = ctx, Pages = categories[0] };
+                    }
+
+                    Util.PendingPageInteractions.Add(pending);
+                }
+            }
+            catch (Exception ex)
+            {
+                await Util.ThrowError(ctx, ex);
+            }
+        }
+
+        public static List<DiscordEmbed> GeneratePopularityEmbeds(string arg, string month, string metric, bool wws, bool frooms)
+        {
+            string description1 = string.Empty;
+            string description2 = string.Empty;
+            string description3 = string.Empty;
+            string description4 = string.Empty;
+            string description5 = string.Empty;
+            string description6 = string.Empty;
+            string description7 = string.Empty;
+            string description8 = string.Empty;
+            string description9 = string.Empty;
+            string description10 = string.Empty;
+            string description11 = string.Empty;
+
+            using MKBBContext dbCtx = new();
+            List<TrackData> trackListCts = dbCtx.Tracks.AsEnumerable()
+                .Where(x => (x.CategoryName == "Normal" || x.CategoryName == "No-shortcut") && x.CustomTrack && !x.Is200cc)
+                .DistinctBy(x => x.Name)
+                .OrderByDescending(x => metric == "online" ? x.ReturnOnlinePopularity(month, wws, frooms) : x.TimeTrialPopularity)
+                .ToList();
+
+            List<TrackData> trackListRts = dbCtx.Tracks.AsEnumerable()
+                .Where(x => (x.CategoryName == "Normal" || x.CategoryName == "No-shortcut") && !x.CustomTrack && !x.Is200cc)
+                .DistinctBy(x => x.Name)
+                .OrderByDescending(x => metric == "online" ? x.ReturnOnlinePopularity(month, wws, frooms) : x.TimeTrialPopularity)
+                .ToList();
+
+            List<DiscordEmbed> embeds = new();
+
+            if (arg.ToLowerInvariant().Contains("rts"))
+            {
+                for (int i = 0; i < 21; i++)
+                {
+                    description1 += $"**{i + 1})** {trackListRts[i].Name} *({(metric == "online" ? trackListRts[i].ReturnOnlinePopularity(month, wws, frooms) : trackListRts[i].TimeTrialPopularity)})*\n";
+                }
+                for (int i = 21; i < 32; i++)
+                {
+                    description2 += $"**{i + 1})** {trackListRts[i].Name} *({(metric == "online" ? trackListRts[i].ReturnOnlinePopularity(month, wws, frooms) : trackListRts[i].TimeTrialPopularity)})*\n";
+                }
+                embeds = new(){
+                    new DiscordEmbedBuilder
+                    {
                             Color = new DiscordColor("#FF0000"),
                             Title = metric == "online" ? $"__**Displaying 1-21 [Online] *({month.ToUpper()})*:**__" : $"__**Displaying 1-21 [Time Trials]:**__",
                             Description = description1,
@@ -466,265 +538,233 @@ namespace MKBB.Commands
                             }
                         }
                     };
-                }
+            }
 
-                else if (arg.ToLowerInvariant().Contains("cts"))
+            else if (arg.ToLowerInvariant().Contains("cts"))
+            {
+                for (int i = 0; i < 21; i++)
                 {
-                    for (int i = 0; i < 21; i++)
-                    {
-                        description1 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month) : trackListCts[i].TimeTrialPopularity)})*\n";
-                    }
-                    for (int i = 21; i < 42; i++)
-                    {
-                        description2 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month) : trackListCts[i].TimeTrialPopularity)})*\n";
-                    }
-                    for (int i = 42; i < 63; i++)
-                    {
-                        description3 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month) : trackListCts[i].TimeTrialPopularity)})*\n";
-                    }
-                    for (int i = 63; i < 84; i++)
-                    {
-                        description4 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month) : trackListCts[i].TimeTrialPopularity)})*\n";
-                    }
-                    for (int i = 84; i < 105; i++)
-                    {
-                        description5 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month) : trackListCts[i].TimeTrialPopularity)})*\n";
-                    }
-                    for (int i = 105; i < 126; i++)
-                    {
-                        description6 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month) : trackListCts[i].TimeTrialPopularity)})*\n";
-                    }
-                    for (int i = 126; i < 147; i++)
-                    {
-                        description7 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month) : trackListCts[i].TimeTrialPopularity)})*\n";
-                    }
-                    for (int i = 147; i < 168; i++)
-                    {
-                        description8 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month) : trackListCts[i].TimeTrialPopularity)})*\n";
-                    }
-                    for (int i = 168; i < 189; i++)
-                    {
-                        description9 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month) : trackListCts[i].TimeTrialPopularity)})*\n";
-                    }
-                    for (int i = 189; i < 210; i++)
-                    {
-                        description10 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month) : trackListCts[i].TimeTrialPopularity)})*\n";
-                    }
-                    for (int i = 210; i < 218; i++)
-                    {
-                        description11 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month) : trackListCts[i].TimeTrialPopularity)})*\n";
-                    }
-                    embeds = new(){
-                        new DiscordEmbedBuilder
-                        {
-                            Color = new DiscordColor("#FF0000"),
-                            Title = metric == "online" ? $"__**Displaying 1-21 [Online] *({month.ToUpper()})*:**__" : $"__**Displaying 1-21 [Time Trials]:**__",
-                            Description = description1,
-                            Url = metric == "online" ? "https://wiimmfi.de/stats/track/mv/ctgp?p=std,c2,0" : "https://chadsoft.co.uk/time-trials/",
-                            Footer = new DiscordEmbedBuilder.EmbedFooter
-                            {
-                                Text = $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
-                            }
-                        },
-                            new DiscordEmbedBuilder
-                        {
-                            Color = new DiscordColor("#FF0000"),
-                            Title = metric == "online" ? $"__**Displaying 22-42 [Online] *({month.ToUpper()})*:**__" : $"__**Displaying 22-42 [Time Trials]:**__",
-                            Description = description2,
-                            Url = metric == "online" ? "https://wiimmfi.de/stats/track/mv/ctgp?p=std,c2,0" : "https://chadsoft.co.uk/time-trials/",
-                            Footer = new DiscordEmbedBuilder.EmbedFooter
-                            {
-                                Text = $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
-                            }
-                        },
-                        new DiscordEmbedBuilder
-                        {
-                            Color = new DiscordColor("#FF0000"),
-                            Title = metric == "online" ? $"__**Displaying 43-63 [Online] *({month.ToUpper()})*:**__" : $"__**Displaying 43-63 [Time Trials]:**__",
-                            Description = description3,
-                            Url = metric == "online" ? "https://wiimmfi.de/stats/track/mv/ctgp?p=std,c2,0" : "https://chadsoft.co.uk/time-trials/",
-                            Footer = new DiscordEmbedBuilder.EmbedFooter
-                            {
-                                Text = $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
-                            }
-                        },
-                        new DiscordEmbedBuilder
-                        {
-                            Color = new DiscordColor("#FF0000"),
-                            Title = metric == "online" ? $"__**Displaying 64-84 [Online] *({month.ToUpper()})*:**__" : $"__**Displaying 64-84 [Time Trials]:**__",
-                            Description = description4,
-                            Url = metric == "online" ? "https://wiimmfi.de/stats/track/mv/ctgp?p=std,c2,0" : "https://chadsoft.co.uk/time-trials/",
-                            Footer = new DiscordEmbedBuilder.EmbedFooter
-                            {
-                                Text = $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
-                            }
-                        },
-                        new DiscordEmbedBuilder
-                        {
-                            Color = new DiscordColor("#FF0000"),
-                            Title = metric == "online" ? $"__**Displaying 85-105 [Online] *({month.ToUpper()})*:**__" : $"__**Displaying 85-105 [Time Trials]:**__",
-                            Description = description5,
-                            Url = metric == "online" ? "https://wiimmfi.de/stats/track/mv/ctgp?p=std,c2,0" : "https://chadsoft.co.uk/time-trials/",
-                            Footer = new DiscordEmbedBuilder.EmbedFooter
-                            {
-                                Text = $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
-                            }
-                        },
-                        new DiscordEmbedBuilder
-                        {
-                            Color = new DiscordColor("#FF0000"),
-                            Title = metric == "online" ? $"__**Displaying 106-126 [Online] *({month.ToUpper()})*:**__" : $"__**Displaying 106-126 [Time Trials]:**__",
-                            Description = description6,
-                            Url = metric == "online" ? "https://wiimmfi.de/stats/track/mv/ctgp?p=std,c2,0" : "https://chadsoft.co.uk/time-trials/",
-                            Footer = new DiscordEmbedBuilder.EmbedFooter
-                            {
-                                Text = $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
-                            }
-                        },
-                        new DiscordEmbedBuilder
-                        {
-                            Color = new DiscordColor("#FF0000"),
-                            Title = metric == "online" ? $"__**Displaying 127-147 [Online] *({month.ToUpper()})*:**__" : $"__**Displaying 127-147 [Time Trials]:**__",
-                            Description = description7,
-                            Url = metric == "online" ? "https://wiimmfi.de/stats/track/mv/ctgp?p=std,c2,0" : "https://chadsoft.co.uk/time-trials/",
-                            Footer = new DiscordEmbedBuilder.EmbedFooter
-                            {
-                                Text = $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
-                            }
-                        },
-                        new DiscordEmbedBuilder
-                        {
-                            Color = new DiscordColor("#FF0000"),
-                            Title = metric == "online" ? $"__**Displaying 148-168 [Online] *({month.ToUpper()})*:**__" : $"__**Displaying 148-168 [Time Trials]:**__",
-                            Description = description8,
-                            Url = metric == "online" ? "https://wiimmfi.de/stats/track/mv/ctgp?p=std,c2,0" : "https://chadsoft.co.uk/time-trials/",
-                            Footer = new DiscordEmbedBuilder.EmbedFooter
-                            {
-                                Text = $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
-                            }
-                        },
-                        new DiscordEmbedBuilder
-                        {
-                            Color = new DiscordColor("#FF0000"),
-                            Title = metric == "online" ? $"__**Displaying 169-189 [Online] *({month.ToUpper()})*:**__" : $"__**Displaying 169-189 [Time Trials]:**__",
-                            Description = description9,
-                            Url = metric == "online" ? "https://wiimmfi.de/stats/track/mv/ctgp?p=std,c2,0" : "https://chadsoft.co.uk/time-trials/",
-                            Footer = new DiscordEmbedBuilder.EmbedFooter
-                            {
-                                Text = $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
-                            }
-                        },
-                        new DiscordEmbedBuilder
-                        {
-                            Color = new DiscordColor("#FF0000"),
-                            Title = metric == "online" ? $"__**Displaying 190-210 [Online] *({month.ToUpper()})*:**__" : $"__**Displaying 190-210 [Time Trials]:**__",
-                            Description = description10,
-                            Url = metric == "online" ? "https://wiimmfi.de/stats/track/mv/ctgp?p=std,c2,0" : "https://chadsoft.co.uk/time-trials/",
-                            Footer = new DiscordEmbedBuilder.EmbedFooter
-                            {
-                                Text = $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
-                            }
-                        },
-                        new DiscordEmbedBuilder
-                        {
-                            Color = new DiscordColor("#FF0000"),
-                            Title = metric == "online" ? $"__**Displaying 211-218 [Online] *({month.ToUpper()})*:**__" : $"__**Displaying 211-218 [Time Trials]:**__",
-                            Description = description11,
-                            Url = metric == "online" ? "https://wiimmfi.de/stats/track/mv/ctgp?p=std,c2,0" : "https://chadsoft.co.uk/time-trials/",
-                            Footer = new DiscordEmbedBuilder.EmbedFooter
-                            {
-                                Text = $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
-                            }
-                        }
-                    };
+                    description1 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month, wws, frooms) : trackListCts[i].TimeTrialPopularity)})*\n";
                 }
-
-                else
+                for (int i = 21; i < 42; i++)
                 {
-                    int c = 0;
-                    int d = 0;
-                    description1 = $"__**Nintendo Tracks**__:\n";
-                    for (int i = 0; i < trackListRts.Count; i++)
-                    {
-                        if (Util.CompareStrings(trackListRts[i].Name, arg) || Util.CompareIncompleteStrings(trackListRts[i].Name, arg) || Util.CompareStringAbbreviation(arg, trackListRts[i].Name) || Util.CompareStringsLevenshteinDistance(arg, trackListRts[i].Name))
-                        {
-                            description1 += $"**{i + 1})** {trackListRts[i].Name} *({(metric == "online" ? trackListRts[i].ReturnOnlinePopularity(month) : trackListRts[i].TimeTrialPopularity)})*\n";
-                        }
-                    }
-                    if (description1 == $"__**Nintendo Tracks**__:\n")
-                    {
-                        description1 = $"__**Custom Tracks**__:\n";
-                        d = description1.ToCharArray().Length;
-                    }
-                    else
-                    {
-                        d = description1.ToCharArray().Length;
-                        description1 += $"__**Custom Tracks**__:\n";
-                    }
-                    for (int i = 0; i < trackListCts.Count; i++)
-                    {
-                        if (Util.CompareStrings(trackListCts[i].Name, arg) || Util.CompareIncompleteStrings(trackListCts[i].Name, arg) || Util.CompareStringAbbreviation(arg, trackListCts[i].Name) || Util.CompareStringsLevenshteinDistance(arg, trackListCts[i].Name))
-                        {
-                            description1 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month) : trackListCts[i].TimeTrialPopularity)})*\n";
-                            c++;
-                        }
-                    }
-                    if (c == 0)
-                    {
-                        if (description1.Contains($"__**Nintendo Tracks**__:\n"))
-                        {
-                            description1 = description1.Remove(d - 1, 23);
-                        }
-                        else
-                        {
-                            description1 = description1.Remove(0, d);
-                        }
-                    }
+                    description2 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month, wws, frooms) : trackListCts[i].TimeTrialPopularity)})*\n";
                 }
-                if (description1 == "")
+                for (int i = 42; i < 63; i++)
                 {
-                    DiscordEmbedBuilder embed = new()
-                    {
+                    description3 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month, wws, frooms) : trackListCts[i].TimeTrialPopularity)})*\n";
+                }
+                for (int i = 63; i < 84; i++)
+                {
+                    description4 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month, wws, frooms) : trackListCts[i].TimeTrialPopularity)})*\n";
+                }
+                for (int i = 84; i < 105; i++)
+                {
+                    description5 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month, wws, frooms) : trackListCts[i].TimeTrialPopularity)})*\n";
+                }
+                for (int i = 105; i < 126; i++)
+                {
+                    description6 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month, wws, frooms) : trackListCts[i].TimeTrialPopularity)})*\n";
+                }
+                for (int i = 126; i < 147; i++)
+                {
+                    description7 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month, wws, frooms) : trackListCts[i].TimeTrialPopularity)})*\n";
+                }
+                for (int i = 147; i < 168; i++)
+                {
+                    description8 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month, wws, frooms) : trackListCts[i].TimeTrialPopularity)})*\n";
+                }
+                for (int i = 168; i < 189; i++)
+                {
+                    description9 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month, wws, frooms) : trackListCts[i].TimeTrialPopularity)})*\n";
+                }
+                for (int i = 189; i < 210; i++)
+                {
+                    description10 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month, wws, frooms) : trackListCts[i].TimeTrialPopularity)})*\n";
+                }
+                for (int i = 210; i < 218; i++)
+                {
+                    description11 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month, wws, frooms) : trackListCts[i].TimeTrialPopularity)})*\n";
+                }
+                embeds = new(){
+                new DiscordEmbedBuilder
+                {
                         Color = new DiscordColor("#FF0000"),
-                        Title = "__**Error:**__",
-                        Description = $"*{arg} could not be found.*",
-                        Url = metric == "online" ? "https://wiimmfi.de/stats/track/mv/ctgp?p=std,c2,0" : "https://chadsoft.co.uk/time-trials/",
-                        Footer = new DiscordEmbedBuilder.EmbedFooter
-                        {
-                            Text = $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
-                        }
-                    };
-                    await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(embed));
-                }
-
-                else if (arg.ToLowerInvariant().Contains("rts") || arg.ToLowerInvariant().Contains("cts"))
-                {
-                    var message = await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(embeds[0]).AddComponents(Util.GeneratePageArrows()));
-
-                    PendingPagesInteraction pending = new() { CurrentPage = 0, MessageId = message.Id, Context = ctx, Pages = embeds };
-
-                    Util.PendingPageInteractions.Add(pending);
-                }
-                else
-                {
-                    DiscordEmbedBuilder embed = new()
-                    {
-                        Color = new DiscordColor("#FF0000"),
-                        Title = metric == "online" ? $"__**Displaying tracks containing *{arg} ({month.ToUpper()})* [Online]:**__" : $"__**Displaying tracks containing *{arg}* [Time Trials]:**__",
+                        Title = metric == "online" ? $"__**Displaying 1-21 [Online] *({month.ToUpper()})*:**__" : $"__**Displaying 1-21 [Time Trials]:**__",
                         Description = description1,
                         Url = metric == "online" ? "https://wiimmfi.de/stats/track/mv/ctgp?p=std,c2,0" : "https://chadsoft.co.uk/time-trials/",
                         Footer = new DiscordEmbedBuilder.EmbedFooter
                         {
                             Text = $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
                         }
-                    };
-                    await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(embed));
-                }
+                    },
+                        new DiscordEmbedBuilder
+                    {
+                        Color = new DiscordColor("#FF0000"),
+                        Title = metric == "online" ? $"__**Displaying 22-42 [Online] *({month.ToUpper()})*:**__" : $"__**Displaying 22-42 [Time Trials]:**__",
+                        Description = description2,
+                        Url = metric == "online" ? "https://wiimmfi.de/stats/track/mv/ctgp?p=std,c2,0" : "https://chadsoft.co.uk/time-trials/",
+                        Footer = new DiscordEmbedBuilder.EmbedFooter
+                        {
+                            Text = $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
+                        }
+                    },
+                    new DiscordEmbedBuilder
+                    {
+                        Color = new DiscordColor("#FF0000"),
+                        Title = metric == "online" ? $"__**Displaying 43-63 [Online] *({month.ToUpper()})*:**__" : $"__**Displaying 43-63 [Time Trials]:**__",
+                        Description = description3,
+                        Url = metric == "online" ? "https://wiimmfi.de/stats/track/mv/ctgp?p=std,c2,0" : "https://chadsoft.co.uk/time-trials/",
+                        Footer = new DiscordEmbedBuilder.EmbedFooter
+                        {
+                            Text = $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
+                        }
+                    },
+                    new DiscordEmbedBuilder
+                    {
+                        Color = new DiscordColor("#FF0000"),
+                        Title = metric == "online" ? $"__**Displaying 64-84 [Online] *({month.ToUpper()})*:**__" : $"__**Displaying 64-84 [Time Trials]:**__",
+                        Description = description4,
+                        Url = metric == "online" ? "https://wiimmfi.de/stats/track/mv/ctgp?p=std,c2,0" : "https://chadsoft.co.uk/time-trials/",
+                        Footer = new DiscordEmbedBuilder.EmbedFooter
+                        {
+                            Text = $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
+                        }
+                    },
+                    new DiscordEmbedBuilder
+                    {
+                        Color = new DiscordColor("#FF0000"),
+                        Title = metric == "online" ? $"__**Displaying 85-105 [Online] *({month.ToUpper()})*:**__" : $"__**Displaying 85-105 [Time Trials]:**__",
+                        Description = description5,
+                        Url = metric == "online" ? "https://wiimmfi.de/stats/track/mv/ctgp?p=std,c2,0" : "https://chadsoft.co.uk/time-trials/",
+                        Footer = new DiscordEmbedBuilder.EmbedFooter
+                        {
+                            Text = $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
+                        }
+                    },
+                    new DiscordEmbedBuilder
+                    {
+                        Color = new DiscordColor("#FF0000"),
+                        Title = metric == "online" ? $"__**Displaying 106-126 [Online] *({month.ToUpper()})*:**__" : $"__**Displaying 106-126 [Time Trials]:**__",
+                        Description = description6,
+                        Url = metric == "online" ? "https://wiimmfi.de/stats/track/mv/ctgp?p=std,c2,0" : "https://chadsoft.co.uk/time-trials/",
+                        Footer = new DiscordEmbedBuilder.EmbedFooter
+                        {
+                            Text = $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
+                        }
+                    },
+                    new DiscordEmbedBuilder
+                    {
+                        Color = new DiscordColor("#FF0000"),
+                        Title = metric == "online" ? $"__**Displaying 127-147 [Online] *({month.ToUpper()})*:**__" : $"__**Displaying 127-147 [Time Trials]:**__",
+                        Description = description7,
+                        Url = metric == "online" ? "https://wiimmfi.de/stats/track/mv/ctgp?p=std,c2,0" : "https://chadsoft.co.uk/time-trials/",
+                        Footer = new DiscordEmbedBuilder.EmbedFooter
+                        {
+                            Text = $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
+                        }
+                    },
+                    new DiscordEmbedBuilder
+                    {
+                        Color = new DiscordColor("#FF0000"),
+                        Title = metric == "online" ? $"__**Displaying 148-168 [Online] *({month.ToUpper()})*:**__" : $"__**Displaying 148-168 [Time Trials]:**__",
+                        Description = description8,
+                        Url = metric == "online" ? "https://wiimmfi.de/stats/track/mv/ctgp?p=std,c2,0" : "https://chadsoft.co.uk/time-trials/",
+                        Footer = new DiscordEmbedBuilder.EmbedFooter
+                        {
+                            Text = $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
+                        }
+                    },
+                    new DiscordEmbedBuilder
+                    {
+                        Color = new DiscordColor("#FF0000"),
+                        Title = metric == "online" ? $"__**Displaying 169-189 [Online] *({month.ToUpper()})*:**__" : $"__**Displaying 169-189 [Time Trials]:**__",
+                        Description = description9,
+                        Url = metric == "online" ? "https://wiimmfi.de/stats/track/mv/ctgp?p=std,c2,0" : "https://chadsoft.co.uk/time-trials/",
+                        Footer = new DiscordEmbedBuilder.EmbedFooter
+                        {
+                            Text = $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
+                        }
+                    },
+                    new DiscordEmbedBuilder
+                    {
+                        Color = new DiscordColor("#FF0000"),
+                        Title = metric == "online" ? $"__**Displaying 190-210 [Online] *({month.ToUpper()})*:**__" : $"__**Displaying 190-210 [Time Trials]:**__",
+                        Description = description10,
+                        Url = metric == "online" ? "https://wiimmfi.de/stats/track/mv/ctgp?p=std,c2,0" : "https://chadsoft.co.uk/time-trials/",
+                        Footer = new DiscordEmbedBuilder.EmbedFooter
+                        {
+                            Text = $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
+                        }
+                    },
+                    new DiscordEmbedBuilder
+                    {
+                        Color = new DiscordColor("#FF0000"),
+                        Title = metric == "online" ? $"__**Displaying 211-218 [Online] *({month.ToUpper()})*:**__" : $"__**Displaying 211-218 [Time Trials]:**__",
+                        Description = description11,
+                        Url = metric == "online" ? "https://wiimmfi.de/stats/track/mv/ctgp?p=std,c2,0" : "https://chadsoft.co.uk/time-trials/",
+                        Footer = new DiscordEmbedBuilder.EmbedFooter
+                        {
+                            Text = $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
+                        }
+                    }
+                };
             }
-            catch (Exception ex)
+            else
             {
-                await Util.ThrowError(ctx, ex);
+                int c = 0;
+                int d = 0;
+                description1 = $"__**Nintendo Tracks**__:\n";
+                for (int i = 0; i < trackListRts.Count; i++)
+                {
+                    if (Util.CompareStrings(trackListRts[i].Name, arg) || Util.CompareIncompleteStrings(trackListRts[i].Name, arg) || Util.CompareStringAbbreviation(arg, trackListRts[i].Name) || Util.CompareStringsLevenshteinDistance(arg, trackListRts[i].Name))
+                    {
+                        description1 += $"**{i + 1})** {trackListRts[i].Name} *({(metric == "online" ? trackListRts[i].ReturnOnlinePopularity(month, wws, frooms) : trackListRts[i].TimeTrialPopularity)})*\n";
+                    }
+                }
+                if (description1 == $"__**Nintendo Tracks**__:\n")
+                {
+                    description1 = $"__**Custom Tracks**__:\n";
+                    d = description1.ToCharArray().Length;
+                }
+                else
+                {
+                    d = description1.ToCharArray().Length;
+                    description1 += $"__**Custom Tracks**__:\n";
+                }
+                for (int i = 0; i < trackListCts.Count; i++)
+                {
+                    if (Util.CompareStrings(trackListCts[i].Name, arg) || Util.CompareIncompleteStrings(trackListCts[i].Name, arg) || Util.CompareStringAbbreviation(arg, trackListCts[i].Name) || Util.CompareStringsLevenshteinDistance(arg, trackListCts[i].Name))
+                    {
+                        description1 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month, wws, frooms) : trackListCts[i].TimeTrialPopularity)})*\n";
+                        c++;
+                    }
+                }
+                if (c == 0)
+                {
+                    if (description1.Contains($"__**Nintendo Tracks**__:\n"))
+                    {
+                        description1 = description1.Remove(d - 1, 23);
+                    }
+                    else
+                    {
+                        description1 = description1.Remove(0, d);
+                    }
+                }
+                DiscordEmbedBuilder embed = new()
+                {
+                    Color = new DiscordColor("#FF0000"),
+                    Title = metric == "online" ? $"__**Displaying tracks containing *{arg} ({month.ToUpper()})* [Online]:**__" : $"__**Displaying tracks containing *{arg}* [Time Trials]:**__",
+                    Description = description1,
+                    Url = metric == "online" ? "https://wiimmfi.de/stats/track/mv/ctgp?p=std,c2,0" : "https://chadsoft.co.uk/time-trials/",
+                    Footer = new DiscordEmbedBuilder.EmbedFooter
+                    {
+                        Text = $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
+                    }
+                };
+                embeds.Add(embed);
             }
+            return embeds;
         }
 
         [SlashCommand("rating", "Gets the ranking from the most recent track rating forms.")]
