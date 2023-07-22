@@ -633,24 +633,20 @@ namespace MKBB.Commands
                         string tally = "*Unreviewed*";
                         try
                         {
-                            if (today >= int.Parse(t[1].ToString()))
+                            string emote = string.Empty;
+                            if ((double.Parse(tRaw[9].ToString()) + double.Parse(tRaw[10].ToString()) + double.Parse(tRaw[11].ToString()) / 2.0) / (double.Parse(tRaw[9].ToString()) + double.Parse(tRaw[10].ToString()) + double.Parse(tRaw[11].ToString()) + double.Parse(tRaw[12].ToString())) >= 2.0 / 3.0)
                             {
-                                string emote = string.Empty;
-                                if ((double.Parse(tRaw[8].ToString()) + double.Parse(tRaw[9].ToString())) / (double.Parse(tRaw[8].ToString()) + double.Parse(tRaw[9].ToString()) + double.Parse(tRaw[11].ToString())) >= 2.0 / 3.0)
-                                {
-                                    emote = DiscordEmoji.FromName(ctx.Client, ":yes:");
-                                }
-                                else
-                                {
-                                    emote = DiscordEmoji.FromName(ctx.Client, ":no:");
-                                }
-                                tally = $"{tRaw[8]}/{tRaw[9]}/{tRaw[10]}/{tRaw[11]} {emote}";
+                                emote = DiscordEmoji.FromName(ctx.Client, ":yes:");
                             }
+                            else
+                            {
+                                emote = DiscordEmoji.FromName(ctx.Client, ":no:");
+                            }
+                            tally = $"{tRaw[9]}/{tRaw[10]}/{tRaw[11]}/{tRaw[12]} - {tRaw[8]} {emote}";
                         }
                         catch
                         {
-                            tally = "*Date is in incorrect format*";
-                            await Util.ThrowCustomError(ctx, $"{tally}: {t[0]}");
+                            tally = "*N/A*";
                         }
                         try
                         {
