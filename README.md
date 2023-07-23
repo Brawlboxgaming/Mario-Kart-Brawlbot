@@ -12,4 +12,4 @@ If you want to have no channels configured with this, do "/botchannel no-channel
 
 ![image](https://user-images.githubusercontent.com/71042104/210158422-2b2f6b08-8903-42fd-812e-b21055062cee.png)
 
-Please message 🥊Brawlbox🥊#1337 if you have any issues.
+Please message "brawlbox" on Discord if you have any issues.
