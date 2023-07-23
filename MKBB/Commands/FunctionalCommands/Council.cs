@@ -125,11 +125,11 @@ namespace MKBB.Commands
                                 slot,
                                 lapSpeed,
                                 notes,
-                                $"=(J{countResponse.Values.Count + 1}+K{countResponse.Values.Count + 1}+L{countResponse.Values.Count + 1}/{countResponse.Values.Count + 1})/(J{countResponse.Values.Count + 1}+K{countResponse.Values.Count + 1}+L{countResponse.Values.Count + 1}+M{countResponse.Values.Count + 1})",
-                                $"=COUNTIF($M{countResponse.Values.Count + 1}:{countResponse.Values.Count + 1}, \"yes*\")",
-                                $"=COUNTIF($M{countResponse.Values.Count + 1}:{countResponse.Values.Count + 1}, \"fixes*\")",
-                                $"=COUNTIF($M{countResponse.Values.Count + 1}:{countResponse.Values.Count + 1}, \"neutral*\")",
-                                $"=COUNTIF($M{countResponse.Values.Count + 1}:{countResponse.Values.Count + 1}, \"no*\")"
+                                $"=(J{countResponse.Values.Count + 1}+K{countResponse.Values.Count + 1}+L{countResponse.Values.Count + 1}/2)/(J{countResponse.Values.Count + 1}+K{countResponse.Values.Count + 1}+L{countResponse.Values.Count + 1}+M{countResponse.Values.Count + 1})",
+                                $"=COUNTIF($N{countResponse.Values.Count + 1}:{countResponse.Values.Count + 1}, \"yes*\")",
+                                $"=COUNTIF($N{countResponse.Values.Count + 1}:{countResponse.Values.Count + 1}, \"fixes*\")",
+                                $"=COUNTIF($N{countResponse.Values.Count + 1}:{countResponse.Values.Count + 1}, \"neutral*\")",
+                                $"=COUNTIF($N{countResponse.Values.Count + 1}:{countResponse.Values.Count + 1}, \"no*\")"
                             };
                 IList<IList<object>> values = new List<IList<object>> { obj };
 
