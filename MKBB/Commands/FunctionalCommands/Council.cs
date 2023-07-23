@@ -125,7 +125,7 @@ namespace MKBB.Commands
                                 slot,
                                 lapSpeed,
                                 notes,
-                                $"=(J{countResponse.Values.Count + 1}+K{countResponse.Values.Count + 1}+L{countResponse.Values.Count + 1}/2)/(J{countResponse.Values.Count + 1}+K{countResponse.Values.Count + 1}+L{countResponse.Values.Count + 1}+M{countResponse.Values.Count + 1})",
+                                $"==IFERROR((J{countResponse.Values.Count + 1}+K{countResponse.Values.Count + 1}+L{countResponse.Values.Count + 1}/2)/(J{countResponse.Values.Count + 1}+K{countResponse.Values.Count + 1}+L{countResponse.Values.Count + 1}+M{countResponse.Values.Count + 1}), 0)",
                                 $"=COUNTIF($N{countResponse.Values.Count + 1}:{countResponse.Values.Count + 1}, \"yes*\")",
                                 $"=COUNTIF($N{countResponse.Values.Count + 1}:{countResponse.Values.Count + 1}, \"fixes*\")",
                                 $"=COUNTIF($N{countResponse.Values.Count + 1}:{countResponse.Values.Count + 1}, \"neutral*\")",
