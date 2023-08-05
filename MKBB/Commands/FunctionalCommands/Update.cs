@@ -213,14 +213,14 @@ namespace MKBB.Commands
                         {
                             newTrack.Authors = v[3].ToString();
                             newTrack.Version = v[4].ToString();
-                            newTrack.TrackSlot = v[6].ToString().Split('/')[0].Trim(' ');
-                            newTrack.MusicSlot = Regex.Replace(v[6].ToString().Split('/')[1], @"\s+", " ").TrimStart();
-                            newTrack.SpeedMultiplier = decimal.Parse(v[7].ToString().Split('/')[0].Trim(' '));
-                            newTrack.LapCount = int.Parse(v[7].ToString().Split('/')[1].Trim(' '));
+                            newTrack.TrackSlot = v[6].ToString();
+                            newTrack.MusicSlot = v[7].ToString();
+                            newTrack.SpeedMultiplier = decimal.Parse(v[8].ToString().Split('/')[0].Trim(' '));
+                            newTrack.LapCount = int.Parse(v[8].ToString().Split('/')[1].Trim(' '));
                             if (dbCtx.Tracks.ToList().FindIndex(x => x.SHA1 == newTrack.SHA1) == -1)
                             {
-                                newTrack.EasyStaffSHA1 = v[9].ToString();
-                                newTrack.ExpertStaffSHA1 = v[11].ToString();
+                                newTrack.EasyStaffSHA1 = v[10].ToString();
+                                newTrack.ExpertStaffSHA1 = v[12].ToString();
                             }
                         }
                     }

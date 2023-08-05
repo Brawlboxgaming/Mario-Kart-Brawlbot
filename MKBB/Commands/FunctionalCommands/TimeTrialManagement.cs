@@ -124,11 +124,10 @@ namespace MKBB.Commands
 
                 using MKBBContext dbCtx = new();
                 List<PlayerData> playerList = dbCtx.Players.ToList();
-                PlayerData player = playerList.First(x => x.DiscordID == ctx.Member.Id);
-
-                int ix = player.PlayerID.Split(",,").FindIndex(x => Util.CompareStrings(x, playerId));
-                if (ix > -1)
+                if (playerList.FindIndex(x => x.DiscordID == ctx.Member.Id) > -1)
                 {
+                    PlayerData player = playerList.First(x => x.DiscordID == ctx.Member.Id);
+                    int ix = player.PlayerID.Split(",,").FindIndex(x => Util.CompareStrings(x, playerId));
                     if (player.PlayerID.Contains(",,"))
                     {
                         List<string> playerIDs = player.PlayerID.Split(",,").ToList();
@@ -162,7 +161,7 @@ namespace MKBB.Commands
                     {
                         Color = new DiscordColor("#FF0000"),
                         Title = "__**Error:**__",
-                        Description = $"*Player ID was not found registered by your account.*",
+                        Description = $"*Player ID was not registered by your account.*",
                         Footer = new DiscordEmbedBuilder.EmbedFooter
                         {
                             Text = $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"

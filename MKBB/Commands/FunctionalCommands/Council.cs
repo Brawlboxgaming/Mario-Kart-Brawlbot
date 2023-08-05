@@ -69,9 +69,12 @@ namespace MKBB.Commands
                 int sameDueCount = 0;
                 for (int i = 1; i < countResponse.Values.Count; i++)
                 {
-                    if (int.Parse(countResponse.Values[i][1].ToString()) == Convert.ToInt32(due.Subtract(DateTime.ParseExact("31/12/1899", "dd/MM/yyyy", CultureInfo.CurrentCulture)).TotalDays + 1))
+                    if (countResponse.Values[i][1].ToString() != "")
                     {
-                        sameDueCount++;
+                        if (int.Parse(countResponse.Values[i][1].ToString()) == Convert.ToInt32(due.Subtract(DateTime.ParseExact("31/12/1899", "dd/MM/yyyy", CultureInfo.CurrentCulture)).TotalDays + 1))
+                        {
+                            sameDueCount++;
+                        }
                     }
                 }
                 if (sameDueCount > 4)
