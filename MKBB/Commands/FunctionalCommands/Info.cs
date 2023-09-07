@@ -1122,81 +1122,6 @@ namespace MKBB.Commands
                 }
                 else
                 {
-                    if (thisYear)
-                    {
-                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Early {DateTime.Now.Year} Track Rating Graphs'");
-                    }
-                    else if (halfLastYear)
-                    {
-                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Mid {DateTime.Now.Year - 1} Track Rating Graphs'");
-                    }
-                    else if (lastYear)
-                    {
-                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Early {DateTime.Now.Year - 1} Track Rating Graphs'");
-                    }
-                    response = await request.ExecuteAsync();
-                    foreach (var t in response.Values)
-                    {
-                        while (t.Count < 15)
-                        {
-                            t.Add("");
-                        }
-                    }
-
-                    int ix = -1;
-
-                    for (int i = 0; i < response.Values.Count; i++)
-                    {
-                        if (response.Values[i][12].ToString().Contains("Average Track"))
-                        {
-                            ix = i + 2;
-                            break;
-                        }
-                    }
-
-                    string firstAverage = $"{Math.Round((double.Parse(response.Values[ix][12].ToString().Replace("%", string.Empty)) / (double.Parse(response.Values[ix][12].ToString().Replace("%", string.Empty)) + double.Parse(response.Values[ix][13].ToString().Replace("%", string.Empty)) + double.Parse(response.Values[ix][14].ToString().Replace("%", string.Empty)))) * 100)}/{Math.Round((double.Parse(response.Values[ix][13].ToString().Replace("%", string.Empty)) / (double.Parse(response.Values[ix][12].ToString().Replace("%", string.Empty)) + double.Parse(response.Values[ix][13].ToString().Replace("%", string.Empty)) + double.Parse(response.Values[ix][14].ToString().Replace("%", string.Empty)))) * 100)}/{Math.Round((double.Parse(response.Values[ix][14].ToString().Replace("%", string.Empty)) / (double.Parse(response.Values[ix][12].ToString().Replace("%", string.Empty)) + double.Parse(response.Values[ix][13].ToString().Replace("%", string.Empty)) + double.Parse(response.Values[ix][14].ToString().Replace("%", string.Empty)))) * 100)}";
-                    if (thisYear)
-                    {
-                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Early {DateTime.Now.Year} Track Rating Data'!A226:Y443");
-                    }
-                    else if (halfLastYear)
-                    {
-                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Mid {DateTime.Now.Year - 1} Track Rating Data'!A226:Y443");
-                    }
-                    else if (lastYear)
-                    {
-                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Early {DateTime.Now.Year - 1} Track Rating Data'!A226:Y443");
-                    }
-                    response = await request.ExecuteAsync();
-
-                    if (earlyTrackDisplay.Count > 0)
-                    {
-                        if (thisYear)
-                        {
-                            description += $"__**Early {DateTime.Now.Year} Track Rating Data (Average: {firstAverage}%):**__\n";
-                        }
-                        else if (halfLastYear)
-                        {
-                            description += $"__**Mid {DateTime.Now.Year - 1} Track Rating Data (Average: {firstAverage}%):**__\n";
-                        }
-                        else if (lastYear)
-                        {
-                            description += $"__**Early {DateTime.Now.Year - 1} Track Rating Data (Average: {firstAverage}%):**__\n";
-                        }
-                        for (int i = 0; i < earlyTrackDisplay.Count; i++)
-                        {
-                            foreach (var t in response.Values)
-                            {
-                                if (earlyTrackDisplay[i] == t[0].ToString())
-                                {
-                                    description += $"__{t[0]}__:\nAll - {Math.Round((double.Parse(t[2].ToString()) / (double.Parse(t[2].ToString()) + double.Parse(t[3].ToString()) + double.Parse(t[4].ToString()))) * 100)}/{Math.Round((double.Parse(t[3].ToString()) / (double.Parse(t[2].ToString()) + double.Parse(t[3].ToString()) + double.Parse(t[4].ToString()))) * 100)}/{Math.Round((double.Parse(t[4].ToString()) / (double.Parse(t[2].ToString()) + double.Parse(t[3].ToString()) + double.Parse(t[4].ToString()))) * 100)}% - {Util.RankNumber(t[6].ToString())}\n";
-                                    description += $"Comp - {Math.Round((double.Parse(t[8].ToString()) / (double.Parse(t[8].ToString()) + double.Parse(t[9].ToString()) + double.Parse(t[10].ToString()))) * 100)}/{Math.Round((double.Parse(t[9].ToString()) / (double.Parse(t[8].ToString()) + double.Parse(t[9].ToString()) + double.Parse(t[10].ToString()))) * 100)}/{Math.Round((double.Parse(t[10].ToString()) / (double.Parse(t[8].ToString()) + double.Parse(t[9].ToString()) + double.Parse(t[10].ToString()))) * 100)}% - {Util.RankNumber(t[12].ToString())}\n";
-                                    description += $"Non-Comp - {Math.Round((double.Parse(t[14].ToString()) / (double.Parse(t[14].ToString()) + double.Parse(t[15].ToString()) + double.Parse(t[16].ToString()))) * 100)}/{Math.Round((double.Parse(t[15].ToString()) / (double.Parse(t[14].ToString()) + double.Parse(t[15].ToString()) + double.Parse(t[16].ToString()))) * 100)}/{Math.Round((double.Parse(t[16].ToString()) / (double.Parse(t[14].ToString()) + double.Parse(t[15].ToString()) + double.Parse(t[16].ToString()))) * 100)}% - {Util.RankNumber(t[18].ToString())}\n";
-                                    description += $"Creators - {Math.Round((double.Parse(t[20].ToString()) / (double.Parse(t[20].ToString()) + double.Parse(t[21].ToString()) + double.Parse(t[22].ToString()))) * 100)}/{Math.Round((double.Parse(t[21].ToString()) / (double.Parse(t[20].ToString()) + double.Parse(t[21].ToString()) + double.Parse(t[22].ToString()))) * 100)}/{Math.Round((double.Parse(t[22].ToString()) / (double.Parse(t[20].ToString()) + double.Parse(t[21].ToString()) + double.Parse(t[22].ToString()))) * 100)}% - {Util.RankNumber(t[24].ToString())}\n";
-                                }
-                            }
-                        }
-                    }
 
                     if (thisYear)
                     {
@@ -1219,7 +1144,7 @@ namespace MKBB.Commands
                         }
                     }
 
-                    ix = -1;
+                    int ix = -1;
 
                     for (int i = 0; i < response.Values.Count; i++)
                     {
@@ -1231,6 +1156,8 @@ namespace MKBB.Commands
                     }
 
                     string secondAverage = $"{Math.Round((double.Parse(response.Values[ix][12].ToString().Replace("%", string.Empty)) / (double.Parse(response.Values[ix][12].ToString().Replace("%", string.Empty)) + double.Parse(response.Values[ix][13].ToString().Replace("%", string.Empty)) + double.Parse(response.Values[ix][14].ToString().Replace("%", string.Empty)))) * 100)}/{Math.Round((double.Parse(response.Values[ix][13].ToString().Replace("%", string.Empty)) / (double.Parse(response.Values[ix][12].ToString().Replace("%", string.Empty)) + double.Parse(response.Values[ix][13].ToString().Replace("%", string.Empty)) + double.Parse(response.Values[ix][14].ToString().Replace("%", string.Empty)))) * 100)}/{Math.Round((double.Parse(response.Values[ix][14].ToString().Replace("%", string.Empty)) / (double.Parse(response.Values[ix][12].ToString().Replace("%", string.Empty)) + double.Parse(response.Values[ix][13].ToString().Replace("%", string.Empty)) + double.Parse(response.Values[ix][14].ToString().Replace("%", string.Empty)))) * 100)}";
+
+
 
                     if (thisYear)
                     {
@@ -1265,6 +1192,83 @@ namespace MKBB.Commands
                             foreach (var t in response.Values)
                             {
                                 if (midTrackDisplay[i] == t[0].ToString())
+                                {
+                                    description += $"__{t[0]}__:\nAll - {Math.Round((double.Parse(t[2].ToString()) / (double.Parse(t[2].ToString()) + double.Parse(t[3].ToString()) + double.Parse(t[4].ToString()))) * 100)}/{Math.Round((double.Parse(t[3].ToString()) / (double.Parse(t[2].ToString()) + double.Parse(t[3].ToString()) + double.Parse(t[4].ToString()))) * 100)}/{Math.Round((double.Parse(t[4].ToString()) / (double.Parse(t[2].ToString()) + double.Parse(t[3].ToString()) + double.Parse(t[4].ToString()))) * 100)}% - {Util.RankNumber(t[6].ToString())}\n";
+                                    description += $"Comp - {Math.Round((double.Parse(t[8].ToString()) / (double.Parse(t[8].ToString()) + double.Parse(t[9].ToString()) + double.Parse(t[10].ToString()))) * 100)}/{Math.Round((double.Parse(t[9].ToString()) / (double.Parse(t[8].ToString()) + double.Parse(t[9].ToString()) + double.Parse(t[10].ToString()))) * 100)}/{Math.Round((double.Parse(t[10].ToString()) / (double.Parse(t[8].ToString()) + double.Parse(t[9].ToString()) + double.Parse(t[10].ToString()))) * 100)}% - {Util.RankNumber(t[12].ToString())}\n";
+                                    description += $"Non-Comp - {Math.Round((double.Parse(t[14].ToString()) / (double.Parse(t[14].ToString()) + double.Parse(t[15].ToString()) + double.Parse(t[16].ToString()))) * 100)}/{Math.Round((double.Parse(t[15].ToString()) / (double.Parse(t[14].ToString()) + double.Parse(t[15].ToString()) + double.Parse(t[16].ToString()))) * 100)}/{Math.Round((double.Parse(t[16].ToString()) / (double.Parse(t[14].ToString()) + double.Parse(t[15].ToString()) + double.Parse(t[16].ToString()))) * 100)}% - {Util.RankNumber(t[18].ToString())}\n";
+                                    description += $"Creators - {Math.Round((double.Parse(t[20].ToString()) / (double.Parse(t[20].ToString()) + double.Parse(t[21].ToString()) + double.Parse(t[22].ToString()))) * 100)}/{Math.Round((double.Parse(t[21].ToString()) / (double.Parse(t[20].ToString()) + double.Parse(t[21].ToString()) + double.Parse(t[22].ToString()))) * 100)}/{Math.Round((double.Parse(t[22].ToString()) / (double.Parse(t[20].ToString()) + double.Parse(t[21].ToString()) + double.Parse(t[22].ToString()))) * 100)}% - {Util.RankNumber(t[24].ToString())}\n";
+                                }
+                            }
+                        }
+                    }
+
+                    if (thisYear)
+                    {
+                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Early {DateTime.Now.Year} Track Rating Graphs'");
+                    }
+                    else if (halfLastYear)
+                    {
+                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Mid {DateTime.Now.Year - 1} Track Rating Graphs'");
+                    }
+                    else if (lastYear)
+                    {
+                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Early {DateTime.Now.Year - 1} Track Rating Graphs'");
+                    }
+                    response = await request.ExecuteAsync();
+                    foreach (var t in response.Values)
+                    {
+                        while (t.Count < 15)
+                        {
+                            t.Add("");
+                        }
+                    }
+
+                    ix = -1;
+
+                    for (int i = 0; i < response.Values.Count; i++)
+                    {
+                        if (response.Values[i][12].ToString().Contains("Average Track"))
+                        {
+                            ix = i + 2;
+                            break;
+                        }
+                    }
+
+                    string firstAverage = $"{Math.Round((double.Parse(response.Values[ix][12].ToString().Replace("%", string.Empty)) / (double.Parse(response.Values[ix][12].ToString().Replace("%", string.Empty)) + double.Parse(response.Values[ix][13].ToString().Replace("%", string.Empty)) + double.Parse(response.Values[ix][14].ToString().Replace("%", string.Empty)))) * 100)}/{Math.Round((double.Parse(response.Values[ix][13].ToString().Replace("%", string.Empty)) / (double.Parse(response.Values[ix][12].ToString().Replace("%", string.Empty)) + double.Parse(response.Values[ix][13].ToString().Replace("%", string.Empty)) + double.Parse(response.Values[ix][14].ToString().Replace("%", string.Empty)))) * 100)}/{Math.Round((double.Parse(response.Values[ix][14].ToString().Replace("%", string.Empty)) / (double.Parse(response.Values[ix][12].ToString().Replace("%", string.Empty)) + double.Parse(response.Values[ix][13].ToString().Replace("%", string.Empty)) + double.Parse(response.Values[ix][14].ToString().Replace("%", string.Empty)))) * 100)}";
+
+                    if (thisYear)
+                    {
+                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Early {DateTime.Now.Year} Track Rating Data'!A226:Y443");
+                    }
+                    else if (halfLastYear)
+                    {
+                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Mid {DateTime.Now.Year - 1} Track Rating Data'!A226:Y443");
+                    }
+                    else if (lastYear)
+                    {
+                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Early {DateTime.Now.Year - 1} Track Rating Data'!A226:Y443");
+                    }
+                    response = await request.ExecuteAsync();
+
+                    if (earlyTrackDisplay.Count > 0)
+                    {
+                        if (thisYear)
+                        {
+                            description += $"__**Early {DateTime.Now.Year} Track Rating Data (Average: {firstAverage}%):**__\n";
+                        }
+                        else if (halfLastYear)
+                        {
+                            description += $"__**Mid {DateTime.Now.Year - 1} Track Rating Data (Average: {firstAverage}%):**__\n";
+                        }
+                        else if (lastYear)
+                        {
+                            description += $"__**Early {DateTime.Now.Year - 1} Track Rating Data (Average: {firstAverage}%):**__\n";
+                        }
+                        for (int i = 0; i < earlyTrackDisplay.Count; i++)
+                        {
+                            foreach (var t in response.Values)
+                            {
+                                if (earlyTrackDisplay[i] == t[0].ToString())
                                 {
                                     description += $"__{t[0]}__:\nAll - {Math.Round((double.Parse(t[2].ToString()) / (double.Parse(t[2].ToString()) + double.Parse(t[3].ToString()) + double.Parse(t[4].ToString()))) * 100)}/{Math.Round((double.Parse(t[3].ToString()) / (double.Parse(t[2].ToString()) + double.Parse(t[3].ToString()) + double.Parse(t[4].ToString()))) * 100)}/{Math.Round((double.Parse(t[4].ToString()) / (double.Parse(t[2].ToString()) + double.Parse(t[3].ToString()) + double.Parse(t[4].ToString()))) * 100)}% - {Util.RankNumber(t[6].ToString())}\n";
                                     description += $"Comp - {Math.Round((double.Parse(t[8].ToString()) / (double.Parse(t[8].ToString()) + double.Parse(t[9].ToString()) + double.Parse(t[10].ToString()))) * 100)}/{Math.Round((double.Parse(t[9].ToString()) / (double.Parse(t[8].ToString()) + double.Parse(t[9].ToString()) + double.Parse(t[10].ToString()))) * 100)}/{Math.Round((double.Parse(t[10].ToString()) / (double.Parse(t[8].ToString()) + double.Parse(t[9].ToString()) + double.Parse(t[10].ToString()))) * 100)}% - {Util.RankNumber(t[12].ToString())}\n";
