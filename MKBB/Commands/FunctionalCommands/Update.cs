@@ -1,4 +1,4 @@
-﻿using DSharpPlus;
+using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
 using DSharpPlus.SlashCommands.Attributes;
@@ -685,10 +685,10 @@ namespace MKBB.Commands
             }
 
 #if DEBUG == false
-            File.WriteAllText(@"C:\WebApps\MKBB\wwwroot\api\rts.json", JsonConvert.SerializeObject(dbCtx.Tracks.Where(x => !x.CustomTrack && !x.Is200cc).ToList()));
-            File.WriteAllText(@"C:\WebApps\MKBB\wwwroot\api\rts200.json", JsonConvert.SerializeObject(dbCtx.Tracks.Where(x => !x.CustomTrack && x.Is200cc).ToList()));
-            File.WriteAllText(@"C:\WebApps\MKBB\wwwroot\api\cts.json", JsonConvert.SerializeObject(dbCtx.Tracks.Where(x => x.CustomTrack && !x.Is200cc).ToList()));
-            File.WriteAllText(@"C:\WebApps\MKBB\wwwroot\api\cts200.json", JsonConvert.SerializeObject(dbCtx.Tracks.Where(x => x.CustomTrack && x.Is200cc).ToList()));
+            File.WriteAllText(@"C:\WebApps\MKBB\api\rts.json", JsonConvert.SerializeObject(dbCtx.Tracks.Where(x => !x.CustomTrack && !x.Is200cc).ToList()));
+            File.WriteAllText(@"C:\WebApps\MKBB\api\rts200.json", JsonConvert.SerializeObject(dbCtx.Tracks.Where(x => !x.CustomTrack && x.Is200cc).ToList()));
+            File.WriteAllText(@"C:\WebApps\MKBB\api\cts.json", JsonConvert.SerializeObject(dbCtx.Tracks.Where(x => x.CustomTrack && !x.Is200cc).ToList()));
+            File.WriteAllText(@"C:\WebApps\MKBB\api\cts200.json", JsonConvert.SerializeObject(dbCtx.Tracks.Where(x => x.CustomTrack && x.Is200cc).ToList()));
 #endif
 
             var today = DateTime.Now;
