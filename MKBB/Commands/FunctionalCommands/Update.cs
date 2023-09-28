@@ -1,4 +1,4 @@
-using DSharpPlus;
+﻿using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
 using DSharpPlus.SlashCommands.Attributes;
@@ -184,7 +184,7 @@ namespace MKBB.Commands
                             break;
                         }
                     }
-                    string serviceAccountEmail = "brawlbox@custom-track-testing-bot.iam.gserviceaccount.com";
+                    string serviceAccountEmail = "sheetbox@sonic-fiber-399810.iam.gserviceaccount.com";
 
                     X509Certificate2 certificate = new(@"key.p12", "notasecret", X509KeyStorageFlags.Exportable);
 
@@ -747,7 +747,7 @@ namespace MKBB.Commands
         {
             string json;
 
-            string serviceAccountEmail = "brawlbox@custom-track-testing-bot.iam.gserviceaccount.com";
+            string serviceAccountEmail = "sheetbox@sonic-fiber-399810.iam.gserviceaccount.com";
             X509Certificate2 certificate = new(@"key.p12", "notasecret", X509KeyStorageFlags.Exportable);
             ServiceAccountCredential credential = new(
                new ServiceAccountCredential.Initializer(serviceAccountEmail).FromCertificate(certificate));
