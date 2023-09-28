@@ -10,7 +10,9 @@ using Microsoft.Identity.Client;
 using MKBB.Class;
 using MKBB.Data;
 using System;
+using System.Diagnostics;
 using System.Security.Cryptography.X509Certificates;
+using static Microsoft.Scripting.PerfTrack;
 
 namespace MKBB.Commands
 {
@@ -226,7 +228,6 @@ namespace MKBB.Commands
             try
             {
                 await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource, new DiscordInteractionResponseBuilder() { IsEphemeral = Util.CheckEphemeral(ctx) });
-                string description = string.Empty;
 
                 string serviceAccountEmail = "sheetbox@sonic-fiber-399810.iam.gserviceaccount.com";
 
@@ -251,46 +252,16 @@ namespace MKBB.Commands
                     }
                 }
 
-                string trackDisplay = string.Empty;
-
-                int index = Util.ListNameCheck(response.Values, track, ix2: 2);
-
-                if (index > 0)
+                List<int> ixs = new();
+                for (int i = 0; i < response.Values.Count; i++)
                 {
-
-                    int titleIx = index;
-
-                    while (response.Values[titleIx][0].ToString() != "delimiter")
+                    if (Util.CompareIncompleteStrings(response.Values[i][2].ToString(), track))
                     {
-                        titleIx--;
+                        ixs.Add(i);
                     }
-
-                    string dateString = response.Values[titleIx][1].ToString();
-
-                    var tally = response.Values[index][1].ToString().split("\n");
-                    if (tally[0].ToString() == "✘")
-                    {
-                        tally[0] = DiscordEmoji.FromName(ctx.Client, ":x:");
-                    }
-                    else if (tally[0].ToString() == "✔")
-                    {
-                        tally[0] = DiscordEmoji.FromName(ctx.Client, ":white_check_mark:");
-                    }
-                    if (tally.Count == 1)
-                    {
-                        tally.Add("");
-                    }
-                    if (response.Values[index][6].ToString().ToCharArray().Length > 3500)
-                    {
-                        description = $"__**{dateString}**__\n**{response.Values[index][2]} {response.Values[index][4]} - {response.Values[index][3]}**\n{tally[1]} {tally[0]}\n\n{response.Values[index][6].ToString().Remove(3499)}...\n\n*For full summary go to the [Track Evaluation Log](https://docs.google.com/spreadsheets/d/1I9yFsomTcvFT4hp6eN2azsfv6MsIy1897tBFX_gmtss/edit#gid=798417105).*";
-                    }
-                    else
-                    {
-                        description = $"__**{dateString}**__\n**{response.Values[index][2]} {response.Values[index][4]} - {response.Values[index][3]}**\n{tally[1]} {tally[0]}\n\n{response.Values[index][6]}";
-                    }
-                    trackDisplay = response.Values[index][2].ToString();
                 }
-                if (index < 0)
+
+                if (ixs.Count == 0)
                 {
                     DiscordEmbedBuilder embed = new()
                     {
@@ -304,22 +275,70 @@ namespace MKBB.Commands
                         }
                     };
                     await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(embed));
+                    return;
                 }
-                else
+
+                List<DiscordEmbed> embeds = new();
+
+                foreach (var ix in ixs)
                 {
-                    DiscordEmbedBuilder embed = new()
+                    string trackName = response.Values[ix][2].ToString();
+
+                    int titleIx = ix;
+
+                    while (response.Values[titleIx][0].ToString() != "delimiter")
                     {
-                        Color = new DiscordColor("#FF0000"),
-                        Title = $"__**Summary for {trackDisplay} (First result):**__",
-                        Description = description,
-                        Url = "https://wiki.tockdom.com/wiki/CTGP_Revolution/Track_Wishlist",
-                        Footer = new DiscordEmbedBuilder.EmbedFooter
+                        titleIx--;
+                    }
+                    if (response.Values[ix][2].ToString() == trackName)
+                    {
+                        string description = string.Empty;
+
+                        string dateString = response.Values[titleIx][1].ToString();
+
+                        var tally = response.Values[ix][1].ToString().split("\n");
+                        if (tally[0].ToString() == "✘")
                         {
-                            Text = $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
+                            tally[0] = DiscordEmoji.FromName(ctx.Client, ":x:");
                         }
-                    };
-                    await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(embed));
+                        else if (tally[0].ToString() == "✔")
+                        {
+                            tally[0] = DiscordEmoji.FromName(ctx.Client, ":white_check_mark:");
+                        }
+                        if (tally.Count == 1)
+                        {
+                            tally.Add("");
+                        }
+                        if (response.Values[ix][6].ToString().ToCharArray().Length > 3499)
+                        {
+                            description = $"__**{dateString}**__\n**{response.Values[ix][2]} {response.Values[ix][4]} - {response.Values[ix][3]}**\n{tally[1]} {tally[0]}\n\n{response.Values[ix][6].ToString().Remove(3499)}...\n\n*For full summary go to the [Track Evaluation Log](https://docs.google.com/spreadsheets/d/1I9yFsomTcvFT4hp6eN2azsfv6MsIy1897tBFX_gmtss/edit#gid=798417105).*";
+                        }
+                        else
+                        {
+                            description = $"__**{dateString}**__\n**{response.Values[ix][2]} {response.Values[ix][4]} - {response.Values[ix][3]}**\n{tally[1]} {tally[0]}\n\n{response.Values[ix][6]}";
+                        }
+
+                        DiscordEmbedBuilder embed = new()
+                        {
+                            Color = new DiscordColor("#FF0000"),
+                            Title = $"__**Summary for {trackName}:**__",
+                            Description = description,
+                            Url = "https://wiki.tockdom.com/wiki/CTGP_Revolution/Track_Wishlist",
+                            Footer = new DiscordEmbedBuilder.EmbedFooter
+                            {
+                                Text = $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
+                            }
+                        };
+
+                        embeds.Add(embed);
+                    }
                 }
+
+                var message = await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(embeds[0]).AddComponents(Util.GeneratePageArrows()));
+
+                PendingPagesInteraction pending = new() { CurrentPage = 0, MessageId = message.Id, Context = ctx, Pages = embeds };
+
+                Util.PendingPageInteractions.Add(pending);
             }
             catch (Exception ex)
             {
