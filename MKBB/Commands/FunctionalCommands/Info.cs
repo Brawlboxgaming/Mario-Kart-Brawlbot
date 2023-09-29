@@ -333,12 +333,21 @@ namespace MKBB.Commands
                         embeds.Add(embed);
                     }
                 }
+                DiscordWebhookBuilder builder = new DiscordWebhookBuilder().AddEmbed(embeds[0]);
 
-                var message = await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(embeds[0]).AddComponents(Util.GeneratePageArrows()));
+                if (embeds.Count > 1)
+                {
+                    builder.AddComponents(Util.GeneratePageArrows());
+                }
 
-                PendingPagesInteraction pending = new() { CurrentPage = 0, MessageId = message.Id, Context = ctx, Pages = embeds };
+                var message = await ctx.EditResponseAsync(builder);
 
-                Util.PendingPageInteractions.Add(pending);
+                if (embeds.Count > 1)
+                {
+                    PendingPagesInteraction pending = new() { CurrentPage = 0, MessageId = message.Id, Context = ctx, Pages = embeds };
+
+                    Util.PendingPageInteractions.Add(pending);
+                }
             }
             catch (Exception ex)
             {
