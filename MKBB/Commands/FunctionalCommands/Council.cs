@@ -7,6 +7,7 @@ using Google.Apis.Sheets.v4;
 using Google.Apis.Sheets.v4.Data;
 using MKBB.Class;
 using MKBB.Data;
+using System.Diagnostics;
 using System.Globalization;
 using System.Security.Cryptography.X509Certificates;
 
@@ -121,7 +122,7 @@ namespace MKBB.Commands
                 IList<object> obj = new List<object>
                             {
                                 track,
-                                $"{Util.Months[due.Month - 1]} {due.Day}, {due.Year}",
+                                $"{due.Day}{due.Month}{due.Year}",
                                 author,
                                 "'" + version,
                                 dl,
@@ -436,10 +437,18 @@ namespace MKBB.Commands
                         ApplicationName = "Mario Kart Brawlbot",
                     });
 
-                    SpreadsheetsResource.ValuesResource.GetRequest request = service.Spreadsheets.Values.Get("1I9yFsomTcvFT4hp6eN2azsfv6MsIy1897tBFX_gmtss", "'Track Evaluating'");
-                    request.ValueRenderOption = SpreadsheetsResource.ValuesResource.GetRequest.ValueRenderOptionEnum.FORMULA;
-                    ValueRange response = await request.ExecuteAsync();
+                    //SpreadsheetsResource.ValuesResource.GetRequest request = service.Spreadsheets.Values.Get("1I9yFsomTcvFT4hp6eN2azsfv6MsIy1897tBFX_gmtss", "'Track Evaluating'");
+                    //request.ValueRenderOption = SpreadsheetsResource.ValuesResource.GetRequest.ValueRenderOptionEnum.FORMULA;
+                    //ValueRange response = await request.ExecuteAsync();
 
+
+                    SpreadsheetsResource.GetRequest request = service.Spreadsheets.Get("1I9yFsomTcvFT4hp6eN2azsfv6MsIy1897tBFX_gmtss");
+                    request.Ranges = "'Track Evaluating'";
+                    request.IncludeGridData = true;
+                    Spreadsheet response = await request.ExecuteAsync();
+
+                    Debugger.Break();
+                    /*
                     for (int i = 0; i < response.Values.Count; i++)
                     {
                         while (response.Values[i].Count < response.Values[0].Count)
@@ -552,7 +561,7 @@ namespace MKBB.Commands
                             }
                         };
                         await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(embed));
-                    }
+                    }*/
                 }
             }
             catch (Exception ex)

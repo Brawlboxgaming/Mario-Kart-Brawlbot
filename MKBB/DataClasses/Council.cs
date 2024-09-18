@@ -10,5 +10,6 @@ namespace MKBB.Data
         public int ThreadStrikes { get; set; }
         public int Strikes { get; set; }
         public int CompletedHW { get; set; }
+        public int MissedHW { get; set; }
     }
 }

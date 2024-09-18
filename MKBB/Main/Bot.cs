@@ -67,12 +67,12 @@ namespace MKBB
             SlashCommands.RegisterCommands<TimeTrialManagement>();
             SlashCommands.RegisterCommands<TextCommands>();
             SlashCommands.RegisterCommands<Info>();
-
+#if RELEASE
             SlashCommands.RegisterCommands<Update>(180306609233330176);
             SlashCommands.RegisterCommands<Council>(180306609233330176);
             SlashCommands.RegisterCommands<Misc>(180306609233330176);
             SlashCommands.RegisterCommands<Ghostbusters>(180306609233330176);
-
+#endif
             SlashCommands.RegisterCommands<Update>(1095401690120851558);
             SlashCommands.RegisterCommands<Council>(1095401690120851558);
             SlashCommands.RegisterCommands<Misc>(1095401690120851558);
@@ -88,8 +88,6 @@ namespace MKBB
             };
 
             await Client.ConnectAsync(activity);
-
-            Update update = new();
 
             await Update.StartTimers(null);
 

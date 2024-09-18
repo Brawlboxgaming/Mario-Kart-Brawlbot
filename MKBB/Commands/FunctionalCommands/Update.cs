@@ -12,6 +12,7 @@ using Microsoft.Scripting.Utils;
 using MKBB.Class;
 using MKBB.Data;
 using Newtonsoft.Json;
+using System.Diagnostics;
 using System.Globalization;
 using System.Net;
 using System.Security.Cryptography.X509Certificates;
@@ -125,6 +126,7 @@ namespace MKBB.Commands
             string froomUrl1 = "https://wiimmfi.de/stats/track/mv/priv?m=json&p=std,c2,0";
             string froomUrl2 = "https://wiimmfi.de/stats/track/mv/priv?m=json&p=std,c2,0,100";
             string froomUrl3 = "https://wiimmfi.de/stats/track/mv/priv?m=json&p=std,c2,0,200";
+            string updates = "https://www.chadsoft.co.uk/download/updates.html";
 
             using MKBBContext dbCtx = new();
 
@@ -153,8 +155,21 @@ namespace MKBB.Commands
                 newChadsoftData.Add(track);
             }
 
+            HtmlDocument updatePage = new(); // Get DateAdded
+            updatePage.LoadHtml(await webClient.DownloadStringTaskAsync(updates));
+            var trtds = updatePage.DocumentNode.SelectNodes("//tr/td");
+
             foreach (var track in newChadsoftData)
             {
+                var dateIx = -1;
+                for (int i = 2; i < trtds.Count; i++) 
+                {
+                    if (trtds[i].InnerText.Contains($"New track: {track.Name}") || trtds[i].InnerText.Contains($"Updated {track.Name}"))
+                    {
+                        dateIx = i - 2;
+                        break;
+                    }
+                }
                 if (currentTracks.Where(x => x.SHA1 == track.SHA1).Any()) // If the track already exists in the database
                 {
                     foreach (var t in dbCtx.Tracks.Where(x => x.SHA1 == track.SHA1 && x.LeaderboardLink == track.LinkContainer.Href.URL))
@@ -162,6 +177,11 @@ namespace MKBB.Commands
                         t.LastChanged = track.ConvertData().LastChanged;
                         t.TimeTrialPopularity = track.ConvertData().TimeTrialPopularity;
                         t.Is200cc = track.ConvertData().Is200cc;
+                        if (t.CustomTrack && dateIx > -1)
+                        {
+                            Console.WriteLine("Getting DateAdded for " + t.Name);
+                            t.DateAdded = DateTime.Parse(trtds[dateIx].InnerText);
+                        }
                     }
                 }
                 else // If the track is a new track or an update
@@ -207,20 +227,24 @@ namespace MKBB.Commands
                             c.Add("");
                         }
                     }
-                    foreach (var v in response.Values)
+                    for (int i = 2; i < response.Values.Count; i++)
                     {
-                        if (Util.Convert3DSTrackName(v[2].ToString()) == newTrack.Name)
+                        if (response.Values[i][2].ToString() == "")
                         {
-                            newTrack.Authors = v[3].ToString();
-                            newTrack.Version = v[4].ToString();
-                            newTrack.TrackSlot = v[6].ToString();
-                            newTrack.MusicSlot = v[7].ToString();
-                            newTrack.SpeedMultiplier = decimal.Parse(v[8].ToString().Split('/')[0].Trim(' '));
-                            newTrack.LapCount = int.Parse(v[8].ToString().Split('/')[1].Trim(' '));
+                            break;
+                        }
+                        if (Util.Convert3DSTrackName(response.Values[i][2].ToString()) == newTrack.Name)
+                        {
+                            newTrack.Authors = response.Values[i][3].ToString();
+                            newTrack.Version = response.Values[i][4].ToString();
+                            newTrack.TrackSlot = response.Values[i][6].ToString();
+                            newTrack.MusicSlot = response.Values[i][7].ToString();
+                            newTrack.SpeedMultiplier = decimal.Parse(response.Values[i][8].ToString().Split('/')[0].Trim(' '));
+                            newTrack.LapCount = int.Parse(response.Values[i][8].ToString().Split('/')[1].Trim(' '));
                             if (dbCtx.Tracks.ToList().FindIndex(x => x.SHA1 == newTrack.SHA1) == -1)
                             {
-                                newTrack.EasyStaffSHA1 = v[10].ToString();
-                                newTrack.ExpertStaffSHA1 = v[12].ToString();
+                                newTrack.EasyStaffSHA1 = response.Values[i][11].ToString();
+                                newTrack.ExpertStaffSHA1 = response.Values[i][13].ToString();
                             }
                         }
                     }
@@ -281,12 +305,12 @@ namespace MKBB.Commands
                             updateRequest.ValueInputOption = SpreadsheetsResource.ValuesResource.UpdateRequest.ValueInputOptionEnum.RAW;
                             var update = await updateRequest.ExecuteAsync();
                         }
-                    }
+                    } 
+                    newTrack.DateAdded = DateTime.Parse(trtds[dateIx].InnerText);
                     dbCtx.Tracks.Add(newTrack);
-                    dbCtx.SaveChanges();
                 }
+                dbCtx.SaveChanges();
             }
-            dbCtx.SaveChanges();
 
             // Get most up to date data from Wiimmfi
             // // Nintendo Tracks
@@ -685,6 +709,10 @@ namespace MKBB.Commands
             }
 
 #if DEBUG == false
+            if (!Directory.Exists(@"C:\WebApps\MKBB\api\"))
+            {
+                Directory.CreateDirectory(@"C:\WebApps\MKBB\api\");
+            }
             File.WriteAllText(@"C:\WebApps\MKBB\api\rts.json", JsonConvert.SerializeObject(dbCtx.Tracks.Where(x => !x.CustomTrack && !x.Is200cc).ToList()));
             File.WriteAllText(@"C:\WebApps\MKBB\api\rts200.json", JsonConvert.SerializeObject(dbCtx.Tracks.Where(x => !x.CustomTrack && x.Is200cc).ToList()));
             File.WriteAllText(@"C:\WebApps\MKBB\api\cts.json", JsonConvert.SerializeObject(dbCtx.Tracks.Where(x => x.CustomTrack && !x.Is200cc).ToList()));
@@ -843,8 +871,9 @@ namespace MKBB.Commands
                         dueThreadTracks.Add(tResponse.Values[i][0].ToString());
                         for (int j = 7; j < tResponse.Values[0].Count; j++)
                         {
+                            var tmp = j;
                             int ix = councilJson.FindIndex(x => x.Name == tResponse.Values[0][j].ToString());
-                            bool isAuthor = councilJson[ix].Name.Contains(response.Values[i][2].ToString());
+                            bool isAuthor = councilJson[ix].Name.Contains(tResponse.Values[i][2].ToString());
                             if (tResponse.Values[i][j].ToString() == "" &&
                                     isAuthor == false)
                             {
@@ -879,12 +908,17 @@ namespace MKBB.Commands
                 if (hwCompleted[i] == true)
                 {
                     councilJson[i].CompletedHW++;
+                    councilJson[i].MissedHW = 0;
                 }
                 else if (hwCompleted[i] == false)
                 {
-                    councilJson[i].Strikes++;
+                    councilJson[i].MissedHW++;
                     councilJson[i].CompletedHW = 0;
-                    if (councilJson[i].Strikes > 2)
+                    if (councilJson[i].MissedHW > 1)
+                    {
+                        councilJson[i].Strikes++;
+                    }
+                    if (councilJson[i].Strikes > 3)
                     {
                         send = true;
                     }
@@ -917,7 +951,7 @@ namespace MKBB.Commands
                                 Console.WriteLine($"DM'd Member: {councilJson[i].Name}");
 
 #if RELEASE
-    await member.SendMessageAsync(message);
+                                await member.SendMessageAsync(message);
 #endif
                             }
                             catch (Exception ex)
@@ -932,7 +966,9 @@ namespace MKBB.Commands
 
             dbCtx.SaveChanges();
 
+#if RELEASE
             DiscordChannel councilAnnouncements = Bot.Client.GetGuildAsync(180306609233330176).Result.GetChannel(635313521487511554);
+#endif
 
             string listOfTracks = "";
             if (tracks.Count > 0)
@@ -952,9 +988,9 @@ namespace MKBB.Commands
                 }
                 var ping = "";
 #if RELEASE
-    ping = "<@&608386209655554058> ";
-#endif
+                ping = "<@&608386209655554058> ";
                 await councilAnnouncements.SendMessageAsync($"__**Submissions**__\n{ping}{listOfTracks} due for today.");
+#endif
             }
             if (threadTracks.Count > 0)
             {
@@ -973,12 +1009,14 @@ namespace MKBB.Commands
                 }
                 var ping = "";
 #if RELEASE
-    ping = "<@&608386209655554058> ";
-#endif
+                ping = "<@&608386209655554058> ";
                 await councilAnnouncements.SendMessageAsync($"__**Threads**__\n{ping}{listOfTracks} due for today.");
+#endif
             }
 
+#if RELEASE
             DiscordChannel strikeAnnouncements = Bot.Client.GetGuildAsync(180306609233330176).Result.GetChannel(1019149329556062278);
+#endif
             DiscordChannel strikeLogs = Bot.Client.GetGuildAsync(1095401690120851558).Result.GetChannel(1095402229491581061);
 
             string description = string.Empty;
@@ -1002,7 +1040,9 @@ namespace MKBB.Commands
                         Text = $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
                     }
                 };
+#if RELEASE
                 await strikeAnnouncements.SendMessageAsync(embed);
+#endif
                 await strikeLogs.SendMessageAsync(embed);
             }
 
@@ -1027,7 +1067,9 @@ namespace MKBB.Commands
                         Text = $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
                     }
                 };
+#if RELEASE
                 await strikeAnnouncements.SendMessageAsync(embed);
+#endif
                 await strikeLogs.SendMessageAsync(embed);
             }
 

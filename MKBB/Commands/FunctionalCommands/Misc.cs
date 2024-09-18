@@ -5,6 +5,7 @@ using MKBB.Class;
 using MKBB.Data;
 using Newtonsoft.Json;
 using System.Data;
+using System.Diagnostics;
 using System.Net;
 using System.Text.RegularExpressions;
 
@@ -220,6 +221,133 @@ namespace MKBB.Commands
             }
             catch (Exception ex)
             {
+                await Util.ThrowError(ctx, ex);
+            }
+        }
+
+        [SlashCommand("wbzconvert", "Converts from WBZ to SZS and vice versa.")]
+        public static async Task WBZConvert(InteractionContext ctx,
+            [Option("file", "The WBZ/SZS file to be converted")] DiscordAttachment file)
+        {
+#if DEBUG
+            string driveLetter = "P:";
+#else
+            string driveLetter = "C:";
+#endif
+            try
+            {
+                await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource, new DiscordInteractionResponseBuilder() { IsEphemeral = Util.CheckEphemeral(ctx) });
+                if (file.FileName.EndsWith(".wbz"))
+                {
+                    WebClient webClient = new();
+                    await webClient.DownloadFileTaskAsync(file.Url, $"{driveLetter}/WBZ-Converter/WBZ-to-SZS/{file.FileName}");
+
+                    var processInfo = new ProcessStartInfo();
+                    processInfo.FileName = @"C:\Windows\system32\cmd.exe";
+                    processInfo.Arguments = $"/C \"{driveLetter}/WBZ-Converter/create-patch-library.bat";
+                    processInfo.WorkingDirectory = $"{driveLetter}/WBZ-Converter/";
+
+                    var process = new Process();
+                    process.StartInfo = processInfo;
+                    process.Start();
+                    process.WaitForExit();
+
+                    processInfo = new ProcessStartInfo();
+                    processInfo.FileName = @"C:\Windows\system32\cmd.exe";
+                    processInfo.Arguments = $"/C \"wszst normalize {driveLetter}/WBZ-Converter/WBZ-to-SZS/{file.FileName} --szs --overwrite\"";
+                    processInfo.WorkingDirectory = $"{driveLetter}/WBZ-Converter/";
+
+                    process = new Process();
+                    process.StartInfo = processInfo;
+                    process.Start();
+                    process.WaitForExit();
+
+                    processInfo = new ProcessStartInfo();
+                    processInfo.FileName = @"C:\Windows\system32\cmd.exe";
+                    processInfo.Arguments = $"/C \"wszst normalize {driveLetter}/WBZ-Converter/WBZ-to-SZS/{file.FileName.Replace(".wbz", ".bz")} --szs --overwrite\"";
+                    processInfo.WorkingDirectory = $"{driveLetter}/WBZ-Converter/";
+
+                    process = new Process();
+                    process.StartInfo = processInfo;
+                    process.Start();
+                    process.WaitForExit();
+
+                    FileStream stream = new FileStream($"{driveLetter}/WBZ-Converter/WBZ-to-SZS/{file.FileName.Replace(".wbz", ".szs")}", FileMode.Open);
+                    await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddFile(stream));
+                    stream.Close();
+
+                    Thread.Sleep(30000);
+                    File.Delete($"{driveLetter}/WBZ-Converter/WBZ-to-SZS/{file.FileName}");
+                    File.Delete($"{driveLetter}/WBZ-Converter/WBZ-to-SZS/{file.FileName.Replace(".wbz", ".szs")}");
+                    File.Delete($"{driveLetter}/WBZ-Converter/WBZ-to-SZS/{file.FileName.Replace(".wbz", ".bz")}");
+                }
+                else if (file.FileName.EndsWith(".szs"))
+                {
+                    WebClient webClient = new();
+                    await webClient.DownloadFileTaskAsync(file.Url, $"{driveLetter}/WBZ-Converter/SZS-to-WBZ/{file.FileName}");
+
+                    var processInfo = new ProcessStartInfo();
+                    processInfo.FileName = @"C:\Windows\system32\cmd.exe";
+                    processInfo.Arguments = $"/C \"{driveLetter}/WBZ-Converter/create-patch-library.bat";
+                    processInfo.WorkingDirectory = $"{driveLetter}/WBZ-Converter/";
+
+                    var process = new Process();
+                    process.StartInfo = processInfo;
+                    process.Start();
+                    process.WaitForExit();
+
+                    processInfo = new ProcessStartInfo();
+                    processInfo.FileName = @"C:\Windows\system32\cmd.exe";
+                    processInfo.Arguments = $"/C \"wszst normalize {driveLetter}/WBZ-Converter/SZS-to-WBZ/*.szs --wbz --overwrite\"";
+                    processInfo.WorkingDirectory = $"{driveLetter}/WBZ-Converter/";
+
+                    process = new Process();
+                    process.StartInfo = processInfo;
+                    process.Start();
+                    process.WaitForExit();
+
+                    processInfo = new ProcessStartInfo();
+                    processInfo.FileName = @"C:\Windows\system32\cmd.exe";
+                    processInfo.Arguments = $"/C \"wszst normalize {driveLetter}/WBZ-Converter/SZS-to-WBZ/{file.FileName.Replace(".szs", ".wu8")} --wbz --overwrite\"";
+                    processInfo.WorkingDirectory = $"{driveLetter}/WBZ-Converter/";
+
+                    process = new Process();
+                    process.StartInfo = processInfo;
+                    process.Start();
+                    process.WaitForExit();
+
+                    FileStream stream = new FileStream($"{driveLetter}/WBZ-Converter/SZS-to-WBZ/{file.FileName.Replace(".szs", ".wbz")}", FileMode.Open);
+                    await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddFile(stream));
+                    stream.Close();
+
+                    Thread.Sleep(30000);
+                    File.Delete($"{driveLetter}/WBZ-Converter/SZS-to-WBZ/{file.FileName}");
+                    File.Delete($"{driveLetter}/WBZ-Converter/SZS-to-WBZ/{file.FileName.Replace(".szs", ".wbz")}");
+                    File.Delete($"{driveLetter}/WBZ-Converter/SZS-to-WBZ/{file.FileName.Replace(".szs", ".wu8")}");
+                }
+                else
+                {
+                    DiscordEmbedBuilder embed = new()
+                    {
+                        Color = new DiscordColor("#FF0000"),
+                        Title = "__**Error:**__",
+                        Description = $"*File uploaded was not a .wbz or .szs file.*",
+                        Footer = new DiscordEmbedBuilder.EmbedFooter
+                        {
+                            Text = $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
+                        }
+                    };
+                    await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(embed));
+                }
+            }
+            catch (Exception ex)
+            {
+                File.Delete($"{driveLetter}/WBZ-Converter/WBZ-to-SZS/{file.FileName}");
+                File.Delete($"{driveLetter}/WBZ-Converter/WBZ-to-SZS/{file.FileName.Replace(".wbz", ".szs")}");
+                File.Delete($"{driveLetter}/WBZ-Converter/WBZ-to-SZS/{file.FileName.Replace(".wbz", ".bz")}");
+                File.Delete($"{driveLetter}/WBZ-Converter/SZS-to-WBZ/{file.FileName}");
+                File.Delete($"{driveLetter}/WBZ-Converter/SZS-to-WBZ/{file.FileName.Replace(".szs", ".wbz")}");
+                File.Delete($"{driveLetter}/WBZ-Converter/SZS-to-WBZ/{file.FileName.Replace(".szs", ".wu8")}");
                 await Util.ThrowError(ctx, ex);
             }
         }

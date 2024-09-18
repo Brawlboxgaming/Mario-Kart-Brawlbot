@@ -156,9 +156,9 @@ namespace MKBB.Commands
 
                 List<DiscordEmbed> embeds = new();
 
-            NewEmbed:
+                NewEmbed:
                 string description = $"**{response.Values[k][1]}:**";
-            NewSection:
+                NewSection:
                 string header = response.Values[k][1].ToString();
 
                 while (response.Values[k][1].ToString() == header || response.Values[k][1].ToString() == "")
@@ -198,7 +198,7 @@ namespace MKBB.Commands
                 description += $"\n**{response.Values[k][1]}:**";
                 goto NewSection;
 
-            EndOfUpdates:
+                EndOfUpdates:
                 DiscordWebhookBuilder builder = new DiscordWebhookBuilder().AddEmbed(embeds[0]);
 
                 if (embeds.Count > 1)
@@ -419,20 +419,24 @@ namespace MKBB.Commands
             [Option("stat-duration", "How many months to check for plays in.")] string month = "m3",
             [Choice("Online", "online")]
             [Choice("Time Trials", "tts")]
-            [Option("metric-category", "Can specify either online or time trial popularity.")] string metric = "online")
+            [Option("metric-category", "Can specify either online or time trial popularity.")] string metric = "online",
+            [Choice("True", "true")]
+            [Choice("False", "false")]
+            [Option("time-bias", "Estimates the popularity of newer tracks.")] string timeBiasString = "true")
         {
             try
             {
                 await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource, new DiscordInteractionResponseBuilder() { IsEphemeral = Util.CheckEphemeral(ctx) });
                 arg = Util.Convert3DSTrackName(arg);
 
+                bool timeBias = timeBiasString == "true" ? true : false;
                 List<List<DiscordEmbed>> categories = new();
                 List<string> categoryNames = new List<string> { "All", "Worldwides", "Friend Rooms" };
 
 
                 for (int c = 0; c < categoryNames.Count(); c++)
                 {
-                    List<DiscordEmbed> embeds = GeneratePopularityEmbeds(arg, month, metric, c < 2, c != 1);
+                    List<DiscordEmbed> embeds = GeneratePopularityEmbeds(arg, month, metric, c < 2, c != 1, timeBias);
                     if (embeds[0].Description == "")
                     {
                         DiscordEmbedBuilder embed = new()
@@ -503,8 +507,31 @@ namespace MKBB.Commands
             }
         }
 
-        public static List<DiscordEmbed> GeneratePopularityEmbeds(string arg, string month, string metric, bool wws, bool frooms)
+        public static List<DiscordEmbed> GeneratePopularityEmbeds(string arg, string month, string metric, bool wws, bool frooms, bool timeBias)
         {
+            var timeSpanDays = 0;
+            switch (month)
+            {
+                case "m1":
+                    timeSpanDays = 30;
+                    break;
+                case "m2":
+                    timeSpanDays = 60;
+                    break;
+                case "m3":
+                    timeSpanDays = 90;
+                    break;
+                case "m6":
+                    timeSpanDays = 180;
+                    break;
+                case "m9":
+                    timeSpanDays = 270;
+                    break;
+                case "m12":
+                    timeSpanDays = 360;
+                    break;
+            }
+
             string description1 = string.Empty;
             string description2 = string.Empty;
             string description3 = string.Empty;
@@ -521,13 +548,13 @@ namespace MKBB.Commands
             List<TrackData> trackListCts = dbCtx.Tracks.AsEnumerable()
                 .Where(x => (x.CategoryName == "Normal" || x.CategoryName == "No-shortcut") && x.CustomTrack && !x.Is200cc)
                 .DistinctBy(x => x.Name)
-                .OrderByDescending(x => metric == "online" ? x.ReturnOnlinePopularity(month, wws, frooms) : x.TimeTrialPopularity)
+                .OrderByDescending(x => metric == "online" ? x.ReturnOnlinePopularity(month, wws, frooms, timeBias) : x.TimeTrialPopularity)
                 .ToList();
 
             List<TrackData> trackListRts = dbCtx.Tracks.AsEnumerable()
                 .Where(x => (x.CategoryName == "Normal" || x.CategoryName == "No-shortcut") && !x.CustomTrack && !x.Is200cc)
                 .DistinctBy(x => x.Name)
-                .OrderByDescending(x => metric == "online" ? x.ReturnOnlinePopularity(month, wws, frooms) : x.TimeTrialPopularity)
+                .OrderByDescending(x => metric == "online" ? x.ReturnOnlinePopularity(month, wws, frooms, false) : x.TimeTrialPopularity)
                 .ToList();
 
             List<DiscordEmbed> embeds = new();
@@ -536,11 +563,11 @@ namespace MKBB.Commands
             {
                 for (int i = 0; i < 21; i++)
                 {
-                    description1 += $"**{i + 1})** {trackListRts[i].Name} *({(metric == "online" ? trackListRts[i].ReturnOnlinePopularity(month, wws, frooms) : trackListRts[i].TimeTrialPopularity)})*\n";
+                    description1 += $"**{i + 1})** {trackListRts[i].Name} *({(metric == "online" ? trackListRts[i].ReturnOnlinePopularity(month, wws, frooms, false) : trackListRts[i].TimeTrialPopularity)})*\n";
                 }
                 for (int i = 21; i < 32; i++)
                 {
-                    description2 += $"**{i + 1})** {trackListRts[i].Name} *({(metric == "online" ? trackListRts[i].ReturnOnlinePopularity(month, wws, frooms) : trackListRts[i].TimeTrialPopularity)})*\n";
+                    description2 += $"**{i + 1})** {trackListRts[i].Name} *({(metric == "online" ? trackListRts[i].ReturnOnlinePopularity(month, wws, frooms, false) : trackListRts[i].TimeTrialPopularity)})*\n";
                 }
                 embeds = new(){
                     new DiscordEmbedBuilder
@@ -572,47 +599,47 @@ namespace MKBB.Commands
             {
                 for (int i = 0; i < 21; i++)
                 {
-                    description1 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month, wws, frooms) : trackListCts[i].TimeTrialPopularity)})*\n";
+                    description1 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month, wws, frooms, timeBias) : trackListCts[i].TimeTrialPopularity)}){(DateTime.Now - trackListCts[i].DateAdded >= TimeSpan.Zero && DateTime.Now - trackListCts[i].DateAdded < TimeSpan.FromDays(timeSpanDays) && timeBias ? @"\*" : "")}*\n";
                 }
                 for (int i = 21; i < 42; i++)
                 {
-                    description2 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month, wws, frooms) : trackListCts[i].TimeTrialPopularity)})*\n";
+                    description2 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month, wws, frooms, timeBias) : trackListCts[i].TimeTrialPopularity)}){(DateTime.Now - trackListCts[i].DateAdded >= TimeSpan.Zero && DateTime.Now - trackListCts[i].DateAdded < TimeSpan.FromDays(timeSpanDays) && timeBias ? @"\*" : "")}*\n";
                 }
                 for (int i = 42; i < 63; i++)
                 {
-                    description3 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month, wws, frooms) : trackListCts[i].TimeTrialPopularity)})*\n";
+                    description3 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month, wws, frooms, timeBias) : trackListCts[i].TimeTrialPopularity)}){(DateTime.Now - trackListCts[i].DateAdded >= TimeSpan.Zero && DateTime.Now - trackListCts[i].DateAdded < TimeSpan.FromDays(timeSpanDays) && timeBias ? @"\*" : "")}*\n";
                 }
                 for (int i = 63; i < 84; i++)
                 {
-                    description4 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month, wws, frooms) : trackListCts[i].TimeTrialPopularity)})*\n";
+                    description4 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month, wws, frooms, timeBias) : trackListCts[i].TimeTrialPopularity)}){(DateTime.Now - trackListCts[i].DateAdded >= TimeSpan.Zero && DateTime.Now - trackListCts[i].DateAdded < TimeSpan.FromDays(timeSpanDays) && timeBias ? @"\*" : "")}*\n";
                 }
                 for (int i = 84; i < 105; i++)
                 {
-                    description5 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month, wws, frooms) : trackListCts[i].TimeTrialPopularity)})*\n";
+                    description5 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month, wws, frooms, timeBias) : trackListCts[i].TimeTrialPopularity)}){(DateTime.Now - trackListCts[i].DateAdded >= TimeSpan.Zero && DateTime.Now - trackListCts[i].DateAdded < TimeSpan.FromDays(timeSpanDays) && timeBias ? @"\*" : "")}*\n";
                 }
                 for (int i = 105; i < 126; i++)
                 {
-                    description6 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month, wws, frooms) : trackListCts[i].TimeTrialPopularity)})*\n";
+                    description6 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month, wws, frooms, timeBias) : trackListCts[i].TimeTrialPopularity)}){(DateTime.Now - trackListCts[i].DateAdded >= TimeSpan.Zero && DateTime.Now - trackListCts[i].DateAdded < TimeSpan.FromDays(timeSpanDays) && timeBias ? @"\*" : "")}*\n";
                 }
                 for (int i = 126; i < 147; i++)
                 {
-                    description7 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month, wws, frooms) : trackListCts[i].TimeTrialPopularity)})*\n";
+                    description7 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month, wws, frooms, timeBias) : trackListCts[i].TimeTrialPopularity)}){(DateTime.Now - trackListCts[i].DateAdded >= TimeSpan.Zero && DateTime.Now - trackListCts[i].DateAdded < TimeSpan.FromDays(timeSpanDays) && timeBias ? @"\*" : "")}*\n";
                 }
                 for (int i = 147; i < 168; i++)
                 {
-                    description8 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month, wws, frooms) : trackListCts[i].TimeTrialPopularity)})*\n";
+                    description8 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month, wws, frooms, timeBias) : trackListCts[i].TimeTrialPopularity)}){(DateTime.Now - trackListCts[i].DateAdded >= TimeSpan.Zero && DateTime.Now - trackListCts[i].DateAdded < TimeSpan.FromDays(timeSpanDays) && timeBias ? @"\*" : "")}*\n";
                 }
                 for (int i = 168; i < 189; i++)
                 {
-                    description9 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month, wws, frooms) : trackListCts[i].TimeTrialPopularity)})*\n";
+                    description9 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month, wws, frooms, timeBias) : trackListCts[i].TimeTrialPopularity)}){(DateTime.Now - trackListCts[i].DateAdded >= TimeSpan.Zero && DateTime.Now - trackListCts[i].DateAdded < TimeSpan.FromDays(timeSpanDays) && timeBias ? @"\*" : "")}*\n";
                 }
                 for (int i = 189; i < 210; i++)
                 {
-                    description10 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month, wws, frooms) : trackListCts[i].TimeTrialPopularity)})*\n";
+                    description10 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month, wws, frooms, timeBias) : trackListCts[i].TimeTrialPopularity)}){(DateTime.Now - trackListCts[i].DateAdded >= TimeSpan.Zero && DateTime.Now - trackListCts[i].DateAdded < TimeSpan.FromDays(timeSpanDays) && timeBias ? @"\*" : "")}*\n";
                 }
                 for (int i = 210; i < 218; i++)
                 {
-                    description11 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month, wws, frooms) : trackListCts[i].TimeTrialPopularity)})*\n";
+                    description11 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month, wws, frooms, timeBias) : trackListCts[i].TimeTrialPopularity)}){(DateTime.Now - trackListCts[i].DateAdded >= TimeSpan.Zero && DateTime.Now - trackListCts[i].DateAdded < TimeSpan.FromDays(timeSpanDays) && timeBias ? @"\*" : "")}*\n";
                 }
                 embeds = new(){
                 new DiscordEmbedBuilder
@@ -623,7 +650,7 @@ namespace MKBB.Commands
                         Url = metric == "online" ? "https://wiimmfi.de/stats/track/mv/ctgp?p=std,c2,0" : "https://chadsoft.co.uk/time-trials/",
                         Footer = new DiscordEmbedBuilder.EmbedFooter
                         {
-                            Text = $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
+                            Text = timeBias ? "* Recently added, so may be inaccurate." : $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
                         }
                     },
                         new DiscordEmbedBuilder
@@ -634,7 +661,7 @@ namespace MKBB.Commands
                         Url = metric == "online" ? "https://wiimmfi.de/stats/track/mv/ctgp?p=std,c2,0" : "https://chadsoft.co.uk/time-trials/",
                         Footer = new DiscordEmbedBuilder.EmbedFooter
                         {
-                            Text = $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
+                            Text = timeBias ? "* Recently added, so may be inaccurate." : $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
                         }
                     },
                     new DiscordEmbedBuilder
@@ -645,7 +672,7 @@ namespace MKBB.Commands
                         Url = metric == "online" ? "https://wiimmfi.de/stats/track/mv/ctgp?p=std,c2,0" : "https://chadsoft.co.uk/time-trials/",
                         Footer = new DiscordEmbedBuilder.EmbedFooter
                         {
-                            Text = $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
+                            Text = timeBias ? "* Recently added, so may be inaccurate." : $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
                         }
                     },
                     new DiscordEmbedBuilder
@@ -656,7 +683,7 @@ namespace MKBB.Commands
                         Url = metric == "online" ? "https://wiimmfi.de/stats/track/mv/ctgp?p=std,c2,0" : "https://chadsoft.co.uk/time-trials/",
                         Footer = new DiscordEmbedBuilder.EmbedFooter
                         {
-                            Text = $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
+                            Text = timeBias ? "* Recently added, so may be inaccurate." : $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
                         }
                     },
                     new DiscordEmbedBuilder
@@ -667,7 +694,7 @@ namespace MKBB.Commands
                         Url = metric == "online" ? "https://wiimmfi.de/stats/track/mv/ctgp?p=std,c2,0" : "https://chadsoft.co.uk/time-trials/",
                         Footer = new DiscordEmbedBuilder.EmbedFooter
                         {
-                            Text = $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
+                            Text = timeBias ? "* Recently added, so may be inaccurate." : $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
                         }
                     },
                     new DiscordEmbedBuilder
@@ -678,7 +705,7 @@ namespace MKBB.Commands
                         Url = metric == "online" ? "https://wiimmfi.de/stats/track/mv/ctgp?p=std,c2,0" : "https://chadsoft.co.uk/time-trials/",
                         Footer = new DiscordEmbedBuilder.EmbedFooter
                         {
-                            Text = $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
+                            Text = timeBias ? "* Recently added, so may be inaccurate." : $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
                         }
                     },
                     new DiscordEmbedBuilder
@@ -689,7 +716,7 @@ namespace MKBB.Commands
                         Url = metric == "online" ? "https://wiimmfi.de/stats/track/mv/ctgp?p=std,c2,0" : "https://chadsoft.co.uk/time-trials/",
                         Footer = new DiscordEmbedBuilder.EmbedFooter
                         {
-                            Text = $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
+                            Text = timeBias ? "* Recently added, so may be inaccurate." : $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
                         }
                     },
                     new DiscordEmbedBuilder
@@ -700,7 +727,7 @@ namespace MKBB.Commands
                         Url = metric == "online" ? "https://wiimmfi.de/stats/track/mv/ctgp?p=std,c2,0" : "https://chadsoft.co.uk/time-trials/",
                         Footer = new DiscordEmbedBuilder.EmbedFooter
                         {
-                            Text = $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
+                            Text = timeBias ? "* Recently added, so may be inaccurate." : $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
                         }
                     },
                     new DiscordEmbedBuilder
@@ -711,7 +738,7 @@ namespace MKBB.Commands
                         Url = metric == "online" ? "https://wiimmfi.de/stats/track/mv/ctgp?p=std,c2,0" : "https://chadsoft.co.uk/time-trials/",
                         Footer = new DiscordEmbedBuilder.EmbedFooter
                         {
-                            Text = $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
+                            Text = timeBias ? "* Recently added, so may be inaccurate." : $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
                         }
                     },
                     new DiscordEmbedBuilder
@@ -722,7 +749,7 @@ namespace MKBB.Commands
                         Url = metric == "online" ? "https://wiimmfi.de/stats/track/mv/ctgp?p=std,c2,0" : "https://chadsoft.co.uk/time-trials/",
                         Footer = new DiscordEmbedBuilder.EmbedFooter
                         {
-                            Text = $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
+                            Text = timeBias ? "* Recently added, so may be inaccurate." : $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
                         }
                     },
                     new DiscordEmbedBuilder
@@ -733,7 +760,7 @@ namespace MKBB.Commands
                         Url = metric == "online" ? "https://wiimmfi.de/stats/track/mv/ctgp?p=std,c2,0" : "https://chadsoft.co.uk/time-trials/",
                         Footer = new DiscordEmbedBuilder.EmbedFooter
                         {
-                            Text = $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
+                            Text = timeBias ? "* Recently added, so may be inaccurate." : $"Last Updated: {File.ReadAllText("lastUpdated.txt")}"
                         }
                     }
                 };
@@ -747,7 +774,7 @@ namespace MKBB.Commands
                 {
                     if (Util.CompareStrings(trackListRts[i].Name, arg) || Util.CompareIncompleteStrings(trackListRts[i].Name, arg) || Util.CompareStringAbbreviation(arg, trackListRts[i].Name) || Util.CompareStringsLevenshteinDistance(arg, trackListRts[i].Name))
                     {
-                        description1 += $"**{i + 1})** {trackListRts[i].Name} *({(metric == "online" ? trackListRts[i].ReturnOnlinePopularity(month, wws, frooms) : trackListRts[i].TimeTrialPopularity)})*\n";
+                        description1 += $"**{i + 1})** {trackListRts[i].Name} *({(metric == "online" ? trackListRts[i].ReturnOnlinePopularity(month, wws, frooms, false) : trackListRts[i].TimeTrialPopularity)})*\n";
                     }
                 }
                 if (description1 == $"__**Nintendo Tracks**__:\n")
@@ -764,7 +791,7 @@ namespace MKBB.Commands
                 {
                     if (Util.CompareStrings(trackListCts[i].Name, arg) || Util.CompareIncompleteStrings(trackListCts[i].Name, arg) || Util.CompareStringAbbreviation(arg, trackListCts[i].Name) || Util.CompareStringsLevenshteinDistance(arg, trackListCts[i].Name))
                     {
-                        description1 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month, wws, frooms) : trackListCts[i].TimeTrialPopularity)})*\n";
+                        description1 += $"**{i + 1})** {trackListCts[i].Name} *({(metric == "online" ? trackListCts[i].ReturnOnlinePopularity(month, wws, frooms, timeBias) : trackListCts[i].TimeTrialPopularity)}){(DateTime.Now - trackListCts[i].DateAdded >= TimeSpan.Zero && DateTime.Now - trackListCts[i].DateAdded < TimeSpan.FromDays(timeSpanDays) && timeBias ? @"\*" : "")}*\n";
                         c++;
                     }
                 }
@@ -1014,7 +1041,9 @@ namespace MKBB.Commands
                     {
                         description10 += $"**{i + 1})** {response.Values[i][0]} *({Util.RankNumber(response.Values[i][12].ToString())} / {Util.RankNumber(response.Values[i][18].ToString())} / {Util.RankNumber(response.Values[i][24].ToString())})*\n";
                     }
-                    for (int i = 210; i < 218; i++)
+                    int trackCount = 218;
+                    if (DateTime.Now.Month > 6 && DateTime.Now.Year == 2024) trackCount = 213;
+                    for (int i = 210; i < trackCount; i++)
                     {
                         description11 += $"**{i + 1})** {response.Values[i][0]} *({Util.RankNumber(response.Values[i][12].ToString())} / {Util.RankNumber(response.Values[i][18].ToString())} / {Util.RankNumber(response.Values[i][24].ToString())})*\n";
                     }
@@ -1133,7 +1162,7 @@ namespace MKBB.Commands
                         new DiscordEmbedBuilder
                         {
                             Color = new DiscordColor("#FF0000"),
-                            Title = $"__**Displaying 211-218 (Comp/Non-comp/Creators):**__",
+                            Title = $"__**Displaying 211-{trackCount} (Comp/Non-comp/Creators):**__",
                             Description = description11,
                             Url = "https://docs.google.com/spreadsheets/d/1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM",
                             Footer = new DiscordEmbedBuilder.EmbedFooter

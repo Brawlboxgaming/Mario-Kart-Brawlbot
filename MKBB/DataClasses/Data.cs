@@ -16,7 +16,12 @@ namespace MKBB.Data
 
         protected override void OnConfiguring(DbContextOptionsBuilder options)
         {
-            options.UseSqlServer(Util.GetDBConnectionString("MKBB"));
+#if DEBUG
+            string db = "testMKBB";
+#else
+            string db = "MKBB";
+#endif
+            options.UseSqlServer(Util.GetDBConnectionString(db));
             options.EnableSensitiveDataLogging(true);
         }
 

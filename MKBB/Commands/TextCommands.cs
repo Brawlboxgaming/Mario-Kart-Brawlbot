@@ -18,7 +18,7 @@ namespace MKBB.Commands
                 "\n/issues track" +
                 "\n/nextupdate" +
                 "\n/pb track player (engine-class)" +
-                "\n/pop rts/cts/track (stat-duration) (online/tts)" +
+                "\n/pop rts/cts/track (stat-duration) (online/tts) (time-bias)" +
                 "\n/rating track" +
                 "\n/register chadsoft-link" +
                 "\n/source" +
@@ -27,7 +27,8 @@ namespace MKBB.Commands
                 "\n/summary track" +
                 "\n/tools name" +
                 "\n/top10 track (vehicle) (engine-class)" +
-                "\n/servertop10 track (vehicle) (engine-class)";
+                "\n/servertop10 track (vehicle) (engine-class)" +
+                "\n/wbzconvert {szs/wbz file}";
 
             if (ctx.Guild.Id == 180306609233330176 && Util.CheckEphemeral(ctx))
             {
@@ -82,7 +83,7 @@ namespace MKBB.Commands
                                 "\n/gbaddtrack track-name sha1" +
                                 "\n/gbremovesha1 track-name" +
                                 "\n/gbremovetrack" +
-                                "\n/uploadtestpack test-pack-zip";
+                                "\n/uploadtestpack {test-pack-zip}";
                             break;
                         }
                     }

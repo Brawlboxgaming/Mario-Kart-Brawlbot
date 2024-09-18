@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System;
+using System.ComponentModel.DataAnnotations;
 
 namespace MKBB.Data
 {
@@ -13,6 +14,7 @@ namespace MKBB.Data
         public decimal SpeedMultiplier { get; set; }
         public int LapCount { get; set; }
         public string SHA1 { get; set; }
+        public DateTime DateAdded { get; set; }
         public DateTime LastChanged { get; set; }
         public int TimeTrialPopularity { get; set; }
         public int WWM1 { get; set; }
@@ -72,18 +74,50 @@ namespace MKBB.Data
             };
         }
 
-        public int ReturnOnlinePopularity(string month, bool wws, bool frooms)
+        public int ReturnOnlinePopularity(string month, bool wws, bool frooms, bool timeBias)
         {
+            var timeSpanDays = 0;
+            double dateBias = 1.0;
+            if (timeBias)
+            {
+                switch (month)
+                {
+                    case "m1":
+                        timeSpanDays = 30;
+                        break;
+                    case "m2":
+                        timeSpanDays = 60;
+                        break;
+                    case "m3":
+                        timeSpanDays = 90;
+                        break;
+                    case "m6":
+                        timeSpanDays = 180;
+                        break;
+                    case "m9":
+                        timeSpanDays = 270;
+                        break;
+                    case "m12":
+                        timeSpanDays = 360;
+                        break;
+                }
+
+                if (DateTime.Now - DateAdded >= TimeSpan.Zero && DateTime.Now - DateAdded < TimeSpan.FromDays(timeSpanDays))
+                {
+                    dateBias = Math.Sqrt(timeSpanDays / (DateTime.Now - DateAdded).Days);
+                }
+            }
+
             if (wws && frooms)
             {
                 return month switch
                 {
-                    "m1" => WWM1 + FM1,
-                    "m2" => WWM2 + FM2,
-                    "m3" => WWM3 + FM3,
-                    "m6" => WWM6 + FM6,
-                    "m9" => WWM9 + FM9,
-                    "m12" => WWM12 + FM12,
+                    "m1" => Convert.ToInt32((WWM1 + FM1) * dateBias),
+                    "m2" => Convert.ToInt32((WWM2 + FM2) * dateBias),
+                    "m3" => Convert.ToInt32((WWM3 + FM3) * dateBias),
+                    "m6" => Convert.ToInt32((WWM6 + FM6) * dateBias), 
+                    "m9" => Convert.ToInt32((WWM9 + FM9) * dateBias),
+                    "m12" => Convert.ToInt32((WWM12 + FM12) * dateBias),
                     _ => -1,
                 };
             }
@@ -91,36 +125,23 @@ namespace MKBB.Data
             {
                 return month switch
                 {
-                    "m1" => WWM1,
-                    "m2" => WWM2,
-                    "m3" => WWM3,
-                    "m6" => WWM6,
-                    "m9" => WWM9,
-                    "m12" => WWM12,
+                    "m1" => Convert.ToInt32(WWM1 * dateBias),
+                    "m2" => Convert.ToInt32(WWM2 * dateBias),
+                    "m3" => Convert.ToInt32(WWM3 * dateBias),
+                    "m6" => Convert.ToInt32(WWM6 * dateBias),
+                    "m9" => Convert.ToInt32(WWM9 * dateBias),
+                    "m12" => Convert.ToInt32(WWM12 * dateBias),
                     _ => -1,
                 };
             }
             return month switch
             {
-                "m1" => FM1,
-                "m2" => FM2,
-                "m3" => FM3,
-                "m6" => FM6,
-                "m9" => FM9,
-                "m12" => FM12,
-                _ => -1,
-            };
-        }
-        public int ReturnOnlineFroomPopularity(string month)
-        {
-            return month switch
-            {
-                "m1" => FM1,
-                "m2" => FM2,
-                "m3" => FM3,
-                "m6" => FM6,
-                "m9" => FM9,
-                "m12" => FM12,
+                "m1" => Convert.ToInt32(FM1 * dateBias),
+                "m2" => Convert.ToInt32(FM2 * dateBias),
+                "m3" => Convert.ToInt32(FM3 * dateBias),
+                "m6" => Convert.ToInt32(FM6 * dateBias),
+                "m9" => Convert.ToInt32(FM9 * dateBias),
+                "m12" => Convert.ToInt32(FM12 * dateBias),
                 _ => -1,
             };
         }
@@ -137,6 +158,7 @@ namespace MKBB.Data
         public decimal SpeedMultiplier { get; set; }
         public int LapCount { get; set; }
         public string SHA1 { get; set; }
+        public DateTime DateAdded { get; set; }
         public DateTime LastChanged { get; set; }
         public int TimeTrialPopularity { get; set; }
         public int WWM1 { get; set; }
