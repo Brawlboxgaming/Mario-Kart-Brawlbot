@@ -387,33 +387,35 @@ namespace MKBB.Commands
             m6s = new List<string>();
             m9s = new List<string>();
             m12s = new List<string>();
+            int offset = 0;
             for (int i = 0; i < innerText1.Count; i++)
             {
+                if (innerText1[i].OuterHtml.Contains("colspan=\"2\"")) offset -= 1;
                 if (i % 11 - 2 == 0)
                 {
                     names.Add(innerText1[i].InnerText == "–" ? "0" : innerText1[i].InnerText);
                 }
-                if (i % 11 - 3 == 0)
+                if (i % 11 - 3 == offset)
                 {
                     m1s.Add(innerText1[i].InnerHtml == "–" ? "0" : innerText1[i].InnerHtml);
                 }
-                if (i % 11 - 4 == 0)
+                if (i % 11 - 4 == offset)
                 {
                     m2s.Add(innerText1[i].InnerHtml == "–" ? "0" : innerText1[i].InnerHtml);
                 }
-                if (i % 11 - 5 == 0)
+                if (i % 11 - 5 == offset)
                 {
                     m3s.Add(innerText1[i].InnerHtml == "–" ? "0" : innerText1[i].InnerHtml);
                 }
-                if (i % 11 - 6 == 0)
+                if (i % 11 - 6 == offset)
                 {
                     m6s.Add(innerText1[i].InnerHtml == "–" ? "0" : innerText1[i].InnerHtml);
                 }
-                if (i % 11 - 7 == 0)
+                if (i % 11 - 7 == offset)
                 {
                     m9s.Add(innerText1[i].InnerHtml == "–" ? "0" : innerText1[i].InnerHtml);
                 }
-                if (i % 11 - 8 == 0)
+                if (i % 11 - 8 == offset)
                 {
                     m12s.Add(innerText1[i].InnerHtml == "–" ? "0" : innerText1[i].InnerHtml);
                 }
@@ -425,33 +427,35 @@ namespace MKBB.Commands
                 bodyNodes.Add(n);
             }
             var innerText2 = ctwwHtml2.DocumentNode.SelectNodes("//tr[contains(@id, 'p0-')]/td");
+            offset = 0;
             for (int i = 0; i < innerText2.Count; i++)
             {
+                if (innerText2[i].OuterHtml.Contains("colspan=\"2\"")) offset -= 1;
                 if (i % 11 - 2 == 0)
                 {
                     names.Add(innerText1[i].InnerText == "–" ? "0" : innerText1[i].InnerText);
                 }
-                if (i % 11 - 3 == 0)
+                if (i % 11 - 3 == offset)
                 {
                     m1s.Add(innerText2[i].InnerHtml == "–" ? "0" : innerText2[i].InnerHtml);
                 }
-                if (i % 11 - 4 == 0)
+                if (i % 11 - 4 == offset)
                 {
                     m2s.Add(innerText2[i].InnerHtml == "–" ? "0" : innerText2[i].InnerHtml);
                 }
-                if (i % 11 - 5 == 0)
+                if (i % 11 - 5 == offset)
                 {
                     m3s.Add(innerText2[i].InnerHtml == "–" ? "0" : innerText2[i].InnerHtml);
                 }
-                if (i % 11 - 6 == 0)
+                if (i % 11 - 6 == offset)
                 {
                     m6s.Add(innerText2[i].InnerHtml == "–" ? "0" : innerText2[i].InnerHtml);
                 }
-                if (i % 11 - 7 == 0)
+                if (i % 11 - 7 == offset)
                 {
                     m9s.Add(innerText2[i].InnerHtml == "–" ? "0" : innerText2[i].InnerHtml);
                 }
-                if (i % 11 - 8 == 0)
+                if (i % 11 - 8 == offset)
                 {
                     m12s.Add(innerText2[i].InnerHtml == "–" ? "0" : innerText2[i].InnerHtml);
                 }
@@ -463,33 +467,35 @@ namespace MKBB.Commands
                 bodyNodes.Add(n);
             }
             var innerText3 = ctwwHtml3.DocumentNode.SelectNodes("//tr[contains(@id, 'p0-')]/td");
+            offset = 0;
             for (int i = 0; i < innerText3.Count; i++)
             {
+                if (innerText3[i].OuterHtml.Contains("colspan=\"2\"")) offset -= 1;
                 if (i % 11 - 2 == 0)
                 {
                     names.Add(innerText1[i].InnerText == "–" ? "0" : innerText1[i].InnerText);
                 }
-                if (i % 11 - 3 == 0)
+                if (i % 11 - 3 == offset)
                 {
                     m1s.Add(innerText3[i].InnerHtml == "–" ? "0" : innerText3[i].InnerHtml);
                 }
-                if (i % 11 - 4 == 0)
+                if (i % 11 - 4 == offset)
                 {
                     m2s.Add(innerText3[i].InnerHtml == "–" ? "0" : innerText3[i].InnerHtml);
                 }
-                if (i % 11 - 5 == 0)
+                if (i % 11 - 5 == offset)
                 {
                     m3s.Add(innerText3[i].InnerHtml == "–" ? "0" : innerText3[i].InnerHtml);
                 }
-                if (i % 11 - 6 == 0)
+                if (i % 11 - 6 == offset)
                 {
                     m6s.Add(innerText3[i].InnerHtml == "–" ? "0" : innerText3[i].InnerHtml);
                 }
-                if (i % 11 - 7 == 0)
+                if (i % 11 - 7 == offset)
                 {
                     m9s.Add(innerText3[i].InnerHtml == "–" ? "0" : innerText3[i].InnerHtml);
                 }
-                if (i % 11 - 8 == 0)
+                if (i % 11 - 8 == offset)
                 {
                     m12s.Add(innerText3[i].InnerHtml == "–" ? "0" : innerText3[i].InnerHtml);
                 }

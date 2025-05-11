@@ -156,9 +156,9 @@ namespace MKBB.Commands
 
                 List<DiscordEmbed> embeds = new();
 
-                NewEmbed:
+            NewEmbed:
                 string description = $"**{response.Values[k][1]}:**";
-                NewSection:
+            NewSection:
                 string header = response.Values[k][1].ToString();
 
                 while (response.Values[k][1].ToString() == header || response.Values[k][1].ToString() == "")
@@ -198,7 +198,7 @@ namespace MKBB.Commands
                 description += $"\n**{response.Values[k][1]}:**";
                 goto NewSection;
 
-                EndOfUpdates:
+            EndOfUpdates:
                 DiscordWebhookBuilder builder = new DiscordWebhookBuilder().AddEmbed(embeds[0]);
 
                 if (embeds.Count > 1)
@@ -854,11 +854,28 @@ namespace MKBB.Commands
                 bool halfLastYear = false;
                 bool lastYear = false;
 
+                int earlyStart = 0;
+                int midStart = 0;
+                int earlyEnd = 0;
+                int midEnd = 0;
+
                 try
                 {
                     if (DateTime.Now.Month > 6)
                     {
-                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Early {DateTime.Now.Year} Track Rating Data'!A226:Y443");
+                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Early {DateTime.Now.Year} Track Rating Data'!A:Y");
+                        response = await request.ExecuteAsync();
+                        for (int i = 218; i < response.Values.Count; i++)
+                        {
+                            if (response.Values[i].Count > 0 && response.Values[i][0].ToString().Contains("Tracks"))
+                            {
+                                earlyStart = i + 2;
+                                break;
+                            }
+                        }
+                        earlyEnd = response.Values.Count;
+
+                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Early {DateTime.Now.Year} Track Rating Data'!A{earlyStart}:Y{earlyEnd}");
                         response = await request.ExecuteAsync();
 
                         earlyTrackDisplay = new List<string>();
@@ -871,9 +888,22 @@ namespace MKBB.Commands
                             }
                         }
 
-                        midTrackDisplay = new List<string>();
-                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Mid {DateTime.Now.Year} Track Rating Data'!A226:Y443");
+                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Mid {DateTime.Now.Year} Track Rating Data'!A:Y");
                         response = await request.ExecuteAsync();
+                        for (int i = 218; i < response.Values.Count; i++)
+                        {
+                            if (response.Values[i].Count > 0 && response.Values[i][0].ToString().Contains("Tracks"))
+                            {
+                                midStart = i + 2;
+                                break;
+                            }
+                        }
+                        midEnd = response.Values.Count;
+
+                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Mid {DateTime.Now.Year} Track Rating Data'!A{midStart}:Y{midEnd}");
+                        response = await request.ExecuteAsync();
+
+                        midTrackDisplay = new List<string>();
 
                         for (int i = 0; i < response.Values.Count; i++)
                         {
@@ -886,7 +916,19 @@ namespace MKBB.Commands
                     }
                     else
                     {
-                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Mid {DateTime.Now.Year - 1} Track Rating Data'!A226:Y443");
+                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Mid {DateTime.Now.Year - 1} Track Rating Data'!A:Y");
+                        response = await request.ExecuteAsync();
+                        for (int i = 218; i < response.Values.Count; i++)
+                        {
+                            if (response.Values[i].Count > 0 && response.Values[i][0].ToString().Contains("Tracks"))
+                            {
+                                earlyStart = i + 2;
+                                break;
+                            }
+                        }
+                        earlyEnd = response.Values.Count;
+
+                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Mid {DateTime.Now.Year - 1} Track Rating Data'!A{earlyStart}:Y{earlyEnd}");
                         response = await request.ExecuteAsync();
 
                         earlyTrackDisplay = new List<string>();
@@ -899,9 +941,22 @@ namespace MKBB.Commands
                             }
                         }
 
-                        midTrackDisplay = new List<string>();
-                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Early {DateTime.Now.Year} Track Rating Data'!A226:Y443");
+                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Early {DateTime.Now.Year} Track Rating Data'!A:Y");
                         response = await request.ExecuteAsync();
+                        for (int i = 218; i < response.Values.Count; i++)
+                        {
+                            if (response.Values[i].Count > 0 && response.Values[i][0].ToString().Contains("Tracks"))
+                            {
+                                midStart = i + 2;
+                                break;
+                            }
+                        }
+                        midEnd = response.Values.Count;
+
+                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Early {DateTime.Now.Year} Track Rating Data'!A{midStart}:Y{midEnd}");
+                        response = await request.ExecuteAsync();
+
+                        midTrackDisplay = new List<string>();
 
                         for (int i = 0; i < response.Values.Count; i++)
                         {
@@ -917,7 +972,19 @@ namespace MKBB.Commands
                 {
                     if (DateTime.Now.Month > 6)
                     {
-                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Mid {DateTime.Now.Year - 1} Track Rating Data'!A226:Y443");
+                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Mid {DateTime.Now.Year - 1} Track Rating Data'!A:Y");
+                        response = await request.ExecuteAsync();
+                        for (int i = 218; i < response.Values.Count; i++)
+                        {
+                            if (response.Values[i].Count > 0 && response.Values[i][0].ToString().Contains("Tracks"))
+                            {
+                                earlyStart = i + 2;
+                                break;
+                            }
+                        }
+                        earlyEnd = response.Values.Count;
+
+                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Mid {DateTime.Now.Year - 1} Track Rating Data'!A{earlyStart}:Y{earlyEnd}");
                         response = await request.ExecuteAsync();
 
                         earlyTrackDisplay = new List<string>();
@@ -929,7 +996,20 @@ namespace MKBB.Commands
                                 earlyTrackDisplay.Add(response.Values[i][0].ToString());
                             }
                         }
-                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Early {DateTime.Now.Year} Track Rating Data'!A226:Y443");
+
+                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Early {DateTime.Now.Year} Track Rating Data'!A:Y");
+                        response = await request.ExecuteAsync();
+                        for (int i = 218; i < response.Values.Count; i++)
+                        {
+                            if (response.Values[i].Count > 0 && response.Values[i][0].ToString().Contains("Tracks"))
+                            {
+                                midStart = i + 2;
+                                break;
+                            }
+                        }
+                        midEnd = response.Values.Count;
+
+                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Early {DateTime.Now.Year} Track Rating Data'!A{midStart}:Y{midEnd}");
                         response = await request.ExecuteAsync();
 
                         midTrackDisplay = new List<string>();
@@ -945,6 +1025,18 @@ namespace MKBB.Commands
                     }
                     else
                     {
+                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Early {DateTime.Now.Year - 1} Track Rating Data'!A:Y");
+                        response = await request.ExecuteAsync();
+                        for (int i = 218; i < response.Values.Count; i++)
+                        {
+                            if (response.Values[i].Count > 0 && response.Values[i][0].ToString().Contains("Tracks"))
+                            {
+                                earlyStart = i + 2;
+                                break;
+                            }
+                        }
+                        earlyEnd = response.Values.Count;
+
                         request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Early {DateTime.Now.Year - 1} Track Rating Data'!A226:Y443");
                         response = await request.ExecuteAsync();
 
@@ -957,7 +1049,19 @@ namespace MKBB.Commands
                                 earlyTrackDisplay.Add(response.Values[i][0].ToString());
                             }
                         }
-                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Mid {DateTime.Now.Year - 1} Track Rating Data'!A226:Y443");
+                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Mid {DateTime.Now.Year - 1} Track Rating Data'!A:Y");
+                        response = await request.ExecuteAsync();
+                        for (int i = 218; i < response.Values.Count; i++)
+                        {
+                            if (response.Values[i].Count > 0 && response.Values[i][0].ToString().Contains("Tracks"))
+                            {
+                                midStart = i + 2;
+                                break;
+                            }
+                        }
+                        midEnd = response.Values.Count;
+
+                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Mid {DateTime.Now.Year - 1} Track Rating Data'!A{midStart}:Y{midEnd}");
                         response = await request.ExecuteAsync();
 
                         midTrackDisplay = new List<string>();
@@ -1041,8 +1145,7 @@ namespace MKBB.Commands
                     {
                         description10 += $"**{i + 1})** {response.Values[i][0]} *({Util.RankNumber(response.Values[i][12].ToString())} / {Util.RankNumber(response.Values[i][18].ToString())} / {Util.RankNumber(response.Values[i][24].ToString())})*\n";
                     }
-                    int trackCount = 218;
-                    if (DateTime.Now.Month > 6 && DateTime.Now.Year == 2024) trackCount = 213;
+                    int trackCount = midEnd - midStart + 1;
                     for (int i = 210; i < trackCount; i++)
                     {
                         description11 += $"**{i + 1})** {response.Values[i][0]} *({Util.RankNumber(response.Values[i][12].ToString())} / {Util.RankNumber(response.Values[i][18].ToString())} / {Util.RankNumber(response.Values[i][24].ToString())})*\n";
@@ -1214,19 +1317,50 @@ namespace MKBB.Commands
 
                     string secondAverage = $"{Math.Round((double.Parse(response.Values[ix][12].ToString().Replace("%", string.Empty)) / (double.Parse(response.Values[ix][12].ToString().Replace("%", string.Empty)) + double.Parse(response.Values[ix][13].ToString().Replace("%", string.Empty)) + double.Parse(response.Values[ix][14].ToString().Replace("%", string.Empty)))) * 100)}/{Math.Round((double.Parse(response.Values[ix][13].ToString().Replace("%", string.Empty)) / (double.Parse(response.Values[ix][12].ToString().Replace("%", string.Empty)) + double.Parse(response.Values[ix][13].ToString().Replace("%", string.Empty)) + double.Parse(response.Values[ix][14].ToString().Replace("%", string.Empty)))) * 100)}/{Math.Round((double.Parse(response.Values[ix][14].ToString().Replace("%", string.Empty)) / (double.Parse(response.Values[ix][12].ToString().Replace("%", string.Empty)) + double.Parse(response.Values[ix][13].ToString().Replace("%", string.Empty)) + double.Parse(response.Values[ix][14].ToString().Replace("%", string.Empty)))) * 100)}";
 
-
-
                     if (thisYear)
                     {
-                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Mid {DateTime.Now.Year} Track Rating Data'!A226:Y443");
+                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Mid {DateTime.Now.Year} Track Rating Data'!A:Y");
+                        response = await request.ExecuteAsync();
+                        for (int i = 218; i < response.Values.Count; i++)
+                        {
+                            if (response.Values[i].Count > 0 && response.Values[i][0].ToString().Contains("Tracks"))
+                            {
+                                earlyStart = i + 2;
+                                break;
+                            }
+                        }
+                        earlyEnd = response.Values.Count;
+                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Mid {DateTime.Now.Year} Track Rating Data'!A{earlyStart}:Y{earlyEnd}");
                     }
                     else if (halfLastYear)
                     {
-                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Early {DateTime.Now.Year} Track Rating Data'!A226:Y443");
+                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Early {DateTime.Now.Year} Track Rating Data'!A:Y");
+                        response = await request.ExecuteAsync();
+                        for (int i = 218; i < response.Values.Count; i++)
+                        {
+                            if (response.Values[i].Count > 0 && response.Values[i][0].ToString().Contains("Tracks"))
+                            {
+                                earlyStart = i + 2;
+                                break;
+                            }
+                        }
+                        earlyEnd = response.Values.Count;
+                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Early {DateTime.Now.Year} Track Rating Data'!A{earlyStart}:Y{earlyEnd}");
                     }
                     else if (lastYear)
                     {
-                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Mid {DateTime.Now.Year - 1} Track Rating Data'!A226:Y443");
+                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Mid {DateTime.Now.Year - 1} Track Rating Data'!A:Y");
+                        response = await request.ExecuteAsync();
+                        for (int i = 218; i < response.Values.Count; i++)
+                        {
+                            if (response.Values[i].Count > 0 && response.Values[i][0].ToString().Contains("Tracks"))
+                            {
+                                earlyStart = i + 2;
+                                break;
+                            }
+                        }
+                        earlyEnd = response.Values.Count;
+                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Mid {DateTime.Now.Year - 1} Track Rating Data'!A{earlyStart}:Y{earlyEnd}");
                     }
                     response = await request.ExecuteAsync();
 
@@ -1295,15 +1429,48 @@ namespace MKBB.Commands
 
                     if (thisYear)
                     {
-                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Early {DateTime.Now.Year} Track Rating Data'!A226:Y443");
+                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Early {DateTime.Now.Year} Track Rating Data'!A:Y");
+                        response = await request.ExecuteAsync();
+                        for (int i = 218; i < response.Values.Count; i++)
+                        {
+                            if (response.Values[i].Count > 0 && response.Values[i][0].ToString().Contains("Tracks"))
+                            {
+                                midStart = i + 2;
+                                break;
+                            }
+                        }
+                        midEnd = response.Values.Count;
+                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Early {DateTime.Now.Year} Track Rating Data'!A{midStart}:Y{midEnd}");
                     }
                     else if (halfLastYear)
                     {
-                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Mid {DateTime.Now.Year - 1} Track Rating Data'!A226:Y443");
+                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Mid {DateTime.Now.Year - 1} Track Rating Data'!A:Y");
+                        response = await request.ExecuteAsync();
+                        for (int i = 218; i < response.Values.Count; i++)
+                        {
+                            if (response.Values[i].Count > 0 && response.Values[i][0].ToString().Contains("Tracks"))
+                            {
+                                midStart = i + 2;
+                                break;
+                            }
+                        }
+                        midEnd = response.Values.Count;
+                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Mid {DateTime.Now.Year - 1} Track Rating Data'!A{midStart}:Y{midEnd}");
                     }
                     else if (lastYear)
                     {
-                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Early {DateTime.Now.Year - 1} Track Rating Data'!A226:Y443");
+                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Early {DateTime.Now.Year - 1} Track Rating Data'!A:Y");
+                        response = await request.ExecuteAsync();
+                        for (int i = 218; i < response.Values.Count; i++)
+                        {
+                            if (response.Values[i].Count > 0 && response.Values[i][0].ToString().Contains("Tracks"))
+                            {
+                                midStart = i + 2;
+                                break;
+                            }
+                        }
+                        midEnd = response.Values.Count;
+                        request = service.Spreadsheets.Values.Get("1xwhKoyypCWq5tCRTI69ijJoDiaoAVsvYAxz-q4UBNqM", $"'Early {DateTime.Now.Year - 1} Track Rating Data'!A{midStart}:Y{midEnd}");
                     }
                     response = await request.ExecuteAsync();
 
